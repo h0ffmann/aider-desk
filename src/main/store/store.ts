@@ -8,7 +8,7 @@ import { migrateSettingsV0toV1 } from './migrations/v0-to-v1';
 import { migrateSettingsV1toV2 } from './migrations/v1-to-v2';
 import { migrateSettingsV2toV3 } from './migrations/v2-to-v3';
 
-export const DEFAULT_MAIN_MODEL = 'claude-3-7-sonnet-20250219';
+export const DEFAULT_MAIN_MODEL = 'deepseek/deepseek-chat';
 
 export const DEFAULT_SETTINGS: SettingsData = {
   language: 'en',
@@ -18,14 +18,14 @@ export const DEFAULT_SETTINGS: SettingsData = {
     environmentVariables: '',
   },
   models: {
-    preferred: ['claude-3-7-sonnet-20250219', 'gpt-4o', 'deepseek/deepseek-coder', 'claude-3-5-haiku-20241022'],
+    preferred: ['deepseek/deepseek-chat', 'gpt-4o', 'deepseek/deepseek-coder', 'claude-3-7-sonnet-20250219'],
   },
   agentConfig: {
     providers: [
       {
         name: 'anthropic',
         apiKey: '',
-        model: Object.keys(PROVIDER_MODELS.anthropic.models)[0],
+        model: Object.keys(PROVIDER_MODELS.deepseek.models)[0],
         active: true,
       },
     ],
