@@ -202,7 +202,8 @@ def create_coder(connector):
   # Create coder with default args that match the UI behavior
   coder = cli_main(
     return_coder=True,
-    model="deepseek/deepseek-chat"  # Default model
+    model="deepseek/deepseek-chat",
+    weak_model="deepseek/deepseek-chat"
   )
   if not isinstance(coder, Coder):
     raise ValueError(coder)
@@ -465,7 +466,7 @@ class Connector:
     if (mode and mode != "code") or clear_context:
       running_model = self.coder.main_model
       if mode == "architect" and architect_model:
-        running_model = models.Model(architect_model, weak_model=coder_model.weak_model.name, editor_model=coder_model.name)
+        running_model = models.Model(architect_model, weak_model="deepseek/deepseek-chat", editor_model=coder_model.name)
         models.sanity_check_models(self.coder.io, running_model)
 
       self.running_coder = Coder.create(
@@ -546,7 +547,7 @@ class Connector:
       self.coder = Coder.create(
         edit_format=self.coder.edit_format,
         summarize_from_coder=False,
-        main_model=coder_model,
+        main_model=models.Model("deepseek/deepseek-chat", weak_model="deepseek/deepseek-chat"),
         from_coder=self.running_coder,
         cur_messages=cur_messages,
         done_messages=done_messages,
