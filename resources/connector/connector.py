@@ -200,10 +200,12 @@ def create_coder(connector):
   aider.utils.show_model_warnings = False
   
   # Create coder with default args that match the UI behavior
-  coder = cli_main(
-    return_coder=True,
-    args=["--model", "deepseek/deepseek-chat", "--weak-model", "deepseek/deepseek-chat"]
-  )
+  original_argv = sys.argv
+  sys.argv = ["aider", "--model", "deepseek/deepseek-chat", "--weak-model", "deepseek/deepseek-chat"]
+  try:
+    coder = cli_main(return_coder=True)
+  finally:
+    sys.argv = original_argv
   if not isinstance(coder, Coder):
     raise ValueError(coder)
   if not coder.repo:
