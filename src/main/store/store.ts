@@ -32,7 +32,22 @@ export const DEFAULT_SETTINGS: SettingsData = {
     maxIterations: 10,
     maxTokens: 1000,
     minTimeBetweenToolCalls: 0,
-    mcpServers: {},
+    mcpServers: {
+      'python-agent': {
+        command: 'python',
+        args: ['-m', 'mcp_agent'],
+        env: {
+          MCP_PORT: '50051'
+        }
+      },
+      'node-agent': {
+        command: 'node',
+        args: ['./mcp-server.js'],
+        env: {
+          PORT: '50052'
+        }
+      }
+    },
     disabledServers: [],
     disabledTools: [],
     includeContextFiles: false,
@@ -71,6 +86,18 @@ export class Store {
   async init(): Promise<void> {
     const ElectronStore = (await import('electron-store')).default;
     this.store = new ElectronStore<StoreSchema>() as unknown as CustomStore<StoreSchema>;
+
+    // Ensure default MCP servers are preserved
+    const currentSettings = this.store.get('settings') || {};
+    if (!currentSettings.agentConfig?.mcpServers) {
+      this.store.set('settings', {
+        ...currentSettings,
+        agentConfig: {
+          ...currentSettings.agentConfig,
+          mcpServers: DEFAULT_SETTINGS.agentConfig.mcpServers
+        }
+      });
+    }
   }
 
   getSettings(): SettingsData {

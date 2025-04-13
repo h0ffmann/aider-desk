@@ -28,6 +28,20 @@ export class Agent {
 
   constructor(store: Store) {
     this.store = store;
+    this.initializeDefaultServers();
+  }
+
+  private async initializeDefaultServers() {
+    const settings = this.store.getSettings();
+    if (settings.agentConfig.mcpServers) {
+      for (const [serverName, config] of Object.entries(settings.agentConfig.mcpServers)) {
+        try {
+          await this.reloadMcpServer(serverName, config);
+        } catch (error) {
+          logger.error(`Failed to initialize default MCP server ${serverName}:`, error);
+        }
+      }
+    }
   }
 
   async initMcpServers(project: Project | null = this.initializedForProject, initId = uuidv4()) {
