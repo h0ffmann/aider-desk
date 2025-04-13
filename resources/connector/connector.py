@@ -202,8 +202,7 @@ def create_coder(connector):
   # Create coder with default args that match the UI behavior
   coder = cli_main(
     return_coder=True,
-    model="deepseek/deepseek-chat",
-    weak_model="deepseek/deepseek-chat"
+    args=["--model", "deepseek/deepseek-chat", "--weak-model", "deepseek/deepseek-chat"]
   )
   if not isinstance(coder, Coder):
     raise ValueError(coder)
