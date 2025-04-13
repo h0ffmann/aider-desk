@@ -204,7 +204,7 @@ def create_coder(connector):
     return_coder=True,
     no_check_update=True,
     no_show_model_warnings=True,
-    model="claude-3-7-sonnet-20250219"  # Default model
+    model="deepseek/deepseek-chat"  # Default model
   )
   if not isinstance(coder, Coder):
     raise ValueError(coder)
