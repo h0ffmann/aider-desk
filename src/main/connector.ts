@@ -91,7 +91,7 @@ export class Connector {
   public sendSetModelsMessage(mainModel: string, weakModel: string | null): void {
     const message: SetModelsMessage = {
       action: 'set-models',
-      mainModel,
+      mainModel: mainModel || 'claude-3-7-sonnet-20250219', // Default model
       weakModel,
     };
     this.sendMessage(message);

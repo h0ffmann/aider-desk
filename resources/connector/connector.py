@@ -195,7 +195,17 @@ class ConnectorInputOutput(InputOutput):
         self.connector.loop.create_task(process_changes())
 
 def create_coder(connector):
-  coder = cli_main(return_coder=True)
+  # Skip model warnings since we handle them in the UI
+  import aider.utils
+  aider.utils.show_model_warnings = False
+  
+  # Create coder with default args that match the UI behavior
+  coder = cli_main(
+    return_coder=True,
+    no_check_update=True,
+    no_show_model_warnings=True,
+    model="claude-3-7-sonnet-20250219"  # Default model
+  )
   if not isinstance(coder, Coder):
     raise ValueError(coder)
   if not coder.repo:
