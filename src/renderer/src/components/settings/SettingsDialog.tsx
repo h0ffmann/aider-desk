@@ -29,8 +29,13 @@ export const SettingsDialog = ({ onClose, initialTab = 0 }: Props) => {
   }, [localSettings, originalSettings]);
 
   const handleCancel = () => {
+    // Revert language if changed
     if (originalSettings && localSettings?.language !== originalSettings.language) {
       void i18n.changeLanguage(originalSettings.language);
+    }
+    // Revert zoom if changed
+    if (originalSettings && localSettings?.zoomLevel !== originalSettings.zoomLevel) {
+      void window.api.setZoomLevel(originalSettings.zoomLevel ?? 1);
     }
     onClose();
   };
@@ -53,6 +58,16 @@ export const SettingsDialog = ({ onClose, initialTab = 0 }: Props) => {
     }
   };
 
+  const handleZoomChange = (zoomLevel: number) => {
+    if (localSettings) {
+      setLocalSettings({
+        ...localSettings,
+        zoomLevel,
+      });
+      void window.api.setZoomLevel(zoomLevel);
+    }
+  };
+
   return (
     <ConfirmDialog
       title={t('settings.title')}
@@ -63,7 +78,15 @@ export const SettingsDialog = ({ onClose, initialTab = 0 }: Props) => {
       closeOnEscape
       disabled={!hasChanges}
     >
-      {localSettings && <Settings settings={localSettings} updateSettings={setLocalSettings} onLanguageChange={handleLanguageChange} initialTab={initialTab} />}
+      {localSettings && (
+        <Settings
+          settings={localSettings}
+          updateSettings={setLocalSettings}
+          onLanguageChange={handleLanguageChange}
+          onZoomChange={handleZoomChange}
+          initialTab={initialTab}
+        />
+      )}
     </ConfirmDialog>
   );
 };

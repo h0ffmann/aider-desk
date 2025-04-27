@@ -1,4 +1,4 @@
-import { ContextFileSourceType, ContextFile, TokensCost, FileEdit, UsageReportData, LogLevel, Mode, MessageRole } from '@common/types';
+import { ContextFileSourceType, ContextFile, TokensCost, FileEdit, UsageReportData, LogLevel, Mode, MessageRole, RawModelInfo } from '@common/types';
 
 export type MessageAction =
   | 'init'
@@ -17,7 +17,8 @@ export type MessageAction =
   | 'tokens-info'
   | 'add-message'
   | 'interrupt-response'
-  | 'apply-edits';
+  | 'apply-edits'
+  | 'update-repo-map';
 
 export interface Message {
   action: MessageAction;
@@ -123,8 +124,7 @@ export interface SetModelsMessage extends Message {
   action: 'set-models';
   mainModel: string;
   weakModel?: string | null;
-  maxChatHistoryTokens?: number;
-  info?: Record<string, unknown>;
+  info?: RawModelInfo;
   hasError?: boolean;
 }
 
@@ -189,3 +189,12 @@ export interface ApplyEditsMessage extends Message {
   action: 'apply-edits';
   edits: FileEdit[];
 }
+
+export interface UpdateRepoMapMessage extends Message {
+  action: 'update-repo-map';
+  repoMap: string;
+}
+
+export const isUpdateRepoMapMessage = (message: Message): message is UpdateRepoMapMessage => {
+  return message.action === 'update-repo-map';
+};

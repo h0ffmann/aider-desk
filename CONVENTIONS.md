@@ -50,3 +50,23 @@ const handleClick = (e: MouseEvent<HTMLDivElement>) => {
 
 - when using icons use 'react-icons' library
 - always use arrow functions, when possible
+- prefer TypeScript enums over string literal unions when defining a set of related constants. This improves type safety and code clarity. Example:
+
+```typescript
+// bad
+type Status = 'pending' | 'processing' | 'completed' | 'failed';
+
+// also bad - using the union directly
+interface Task {
+  id: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+}
+
+// good
+enum Status {
+  Pending = 'pending',
+  Processing = 'processing',
+  Completed = 'completed',
+  Failed = 'failed',
+}
+```

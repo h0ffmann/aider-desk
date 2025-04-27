@@ -1,12 +1,30 @@
 import { FaInfoCircle } from 'react-icons/fa';
+import { ReactNode } from 'react';
+import clsx from 'clsx';
 
 import { IconButton } from './IconButton';
 
 type Props = {
-  tooltip: string;
+  tooltip: ReactNode;
   className?: string;
+  size?: 'sm' | 'md' | 'lg';
 };
 
-export const InfoIcon = ({ tooltip, className }: Props) => {
-  return <IconButton icon={<FaInfoCircle />} tooltip={tooltip} className={`ml-2 text-neutral-500 ${className || ''}`} onClick={() => {}} />;
+export const InfoIcon = ({ tooltip, className, size = 'md' }: Props) => {
+  return (
+    <IconButton
+      icon={
+        <FaInfoCircle
+          className={clsx({
+            'w-3 h-3': size === 'sm',
+            'w-4 h-4': size === 'md',
+            'w-5 h-5': size === 'lg',
+          })}
+        />
+      }
+      tooltip={tooltip}
+      className={`ml-2 text-neutral-500 ${className || ''}`}
+      onClick={() => {}}
+    />
+  );
 };

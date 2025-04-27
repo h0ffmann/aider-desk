@@ -109,6 +109,10 @@ const initWindow = async (store: Store) => {
     await mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
 
+  // Apply saved zoom level
+  const settings = store.getSettings();
+  mainWindow.webContents.setZoomFactor(settings.zoomLevel ?? 1.0);
+
   return mainWindow;
 };
 

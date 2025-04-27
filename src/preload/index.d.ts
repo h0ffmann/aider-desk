@@ -40,7 +40,7 @@ export interface ApplicationAPI {
   updateWeakModel: (baseDir: string, model: string) => void;
   updateArchitectModel: (baseDir: string, model: string) => void;
   getProjectSettings: (baseDir: string) => Promise<ProjectSettings>;
-  saveProjectSettings: (baseDir: string, settings: ProjectSettings) => Promise<void>;
+  patchProjectSettings: (baseDir: string, settings: Partial<ProjectSettings>) => Promise<ProjectSettings>;
   getFilePathSuggestions: (currentPath: string, directoriesOnly?: boolean) => Promise<string[]>;
   getAddableFiles: (baseDir: string) => Promise<string[]>;
   addFile: (baseDir: string, filePath: string, readOnly?: boolean) => void;
@@ -55,12 +55,14 @@ export interface ApplicationAPI {
   loadSessionMessages: (baseDir: string, name: string) => Promise<void>;
   loadSessionFiles: (baseDir: string, name: string) => Promise<void>;
   listSessions: (baseDir: string) => Promise<SessionData[]>;
+  exportSessionToMarkdown: (baseDir: string) => Promise<void>;
   getRecentProjects: () => Promise<string[]>;
   addRecentProject: (baseDir: string) => Promise<void>;
   removeRecentProject: (baseDir: string) => Promise<void>;
   interruptResponse: (baseDir: string) => void;
   applyEdits: (baseDir: string, edits: FileEdit[]) => void;
   clearContext: (baseDir: string) => void;
+  setZoomLevel: (level: number) => Promise<void>;
 
   addResponseChunkListener: (baseDir: string, callback: (event: Electron.IpcRendererEvent, data: ResponseChunkData) => void) => string;
   removeResponseChunkListener: (listenerId: string) => void;

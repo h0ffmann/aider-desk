@@ -1,4 +1,4 @@
-import { McpServerConfig, McpTool } from '@common/types';
+import { McpServerConfig, McpTool, ToolApprovalState } from '@common/types';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
@@ -14,11 +14,11 @@ type Props = {
   config: McpServerConfig;
   onRemove: () => void;
   onEdit?: () => void;
-  toggleToolDisabled: (toolId: string) => void;
-  disabledTools: string[];
+  toolApprovals: Record<string, ToolApprovalState>;
+  onApprovalChange: (toolId: string, approval: ToolApprovalState) => void;
 };
 
-export const McpServerItem = ({ serverName, config, onRemove, onEdit, toggleToolDisabled, disabledTools }: Props) => {
+export const McpServerItem = ({ serverName, config, onRemove, onEdit, toolApprovals, onApprovalChange }: Props) => {
   const { t } = useTranslation();
   const [tools, setTools] = useState<McpTool[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,8 @@ export const McpServerItem = ({ serverName, config, onRemove, onEdit, toggleTool
   }, [serverName, config]);
 
   const renderTitle = () => {
-    const enabledCount = tools && tools.length - disabledTools.filter((disabledTool) => disabledTool.startsWith(serverName)).length;
+    const enabledCount =
+      tools && tools.length - tools.filter((tool) => toolApprovals[`${serverName}${SERVER_TOOL_SEPARATOR}${tool.name}`] === ToolApprovalState.Never).length;
 
     return (
       <div className="flex items-center justify-between w-full">
@@ -95,12 +96,7 @@ export const McpServerItem = ({ serverName, config, onRemove, onEdit, toggleTool
           <div>
             <div className="text-xs p-2 rounded mt-1 space-y-2">
               {tools.map((tool) => (
-                <McpToolItem
-                  key={tool.name}
-                  tool={tool}
-                  toggleDisabled={() => toggleToolDisabled(`${serverName}${SERVER_TOOL_SEPARATOR}${tool.name}`)}
-                  isDisabled={disabledTools.includes(`${serverName}${SERVER_TOOL_SEPARATOR}${tool.name}`)}
-                />
+                <McpToolItem key={tool.name} tool={tool} toolApprovals={toolApprovals} onApprovalChange={onApprovalChange} serverName={serverName} />
               ))}
             </div>
           </div>

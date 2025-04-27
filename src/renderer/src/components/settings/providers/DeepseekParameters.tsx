@@ -46,7 +46,13 @@ export const DeepseekParameters = ({ settings, setSettings }: Props) => {
   return (
     <div className="mt-2 space-y-2">
       <ModelSelect providerName="deepseek" currentModel={model} onChange={handleModelChange} />
-      <Input label={t('deepseek.apiKey')} type="password" value={apiKey} onChange={handleApiKeyChange} />
+      <Input
+        label={t('deepseek.apiKey')}
+        type="password"
+        value={apiKey}
+        onChange={handleApiKeyChange}
+        placeholder={t('settings.agent.envVarPlaceholder', { envVar: 'DEEPSEEK_API_KEY' })}
+      />
     </div>
   );
 };

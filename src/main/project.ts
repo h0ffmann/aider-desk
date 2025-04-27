@@ -21,9 +21,10 @@ import {
   ToolData,
   UsageReportData,
   UserMessageData,
+  ProjectSettings,
 } from '@common/types';
 import { fileExists, parseUsageReport } from '@common/utils';
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, dialog } from 'electron';
 import treeKill from 'tree-kill';
 import { v4 as uuidv4 } from 'uuid';
 import { parse } from '@dotenvx/dotenvx';
@@ -41,8 +42,9 @@ export class Project {
   private connectors: Connector[] = [];
   private currentCommand: string | null = null;
   private currentQuestion: QuestionData | null = null;
-  private allTrackedFiles: string[] = [];
+  private currentQuestionPromiseResolve: ((answer: ['y' | 'n', string | undefined]) => void) | null = null;
   private questionAnswers: Map<string, 'y' | 'n'> = new Map();
+  private allTrackedFiles: string[] = [];
   private currentResponseMessageId: string | null = null;
   private currentPromptId: string | null = null;
   private inputHistoryFile = '.aider.input.history';
@@ -51,6 +53,7 @@ export class Project {
   private runPromptResolves: ((value: ResponseCompletedData[]) => void)[] = [];
   private sessionManager: SessionManager = new SessionManager(this);
   private commandOutputs: Map<string, string> = new Map();
+  private repoMap: string = '';
 
   mcpAgentTotalCost: number = 0;
   aiderTotalCost: number = 0;
@@ -95,6 +98,12 @@ export class Project {
 
     this.mcpAgentTotalCost = 0;
     this.aiderTotalCost = 0;
+    this.currentPromptId = null;
+    this.currentResponseMessageId = null;
+    this.currentCommand = null;
+    this.currentQuestion = null;
+    this.currentQuestionPromiseResolve = null;
+    this.questionAnswers.clear();
   }
 
   public addConnector(connector: Connector) {
@@ -178,37 +187,52 @@ export class Project {
 
     await this.checkAndCleanupPidFile();
 
-    this.currentCommand = null;
-    this.currentQuestion = null;
-
     const settings = this.store.getSettings();
-    const mainModel = this.store.getProjectSettings(this.baseDir).mainModel || DEFAULT_MAIN_MODEL;
-    const weakModel = this.store.getProjectSettings(this.baseDir).weakModel;
+    const projectSettings = this.store.getProjectSettings(this.baseDir);
+    const mainModel = projectSettings.mainModel || DEFAULT_MAIN_MODEL;
+    const weakModel = projectSettings.weakModel;
+    const reasoningEffort = projectSettings.reasoningEffort;
     const environmentVariables = parse(settings.aider.environmentVariables);
+    const thinkingTokens = projectSettings.thinkingTokens;
 
     logger.info('Running Aider for project', {
       baseDir: this.baseDir,
       mainModel,
       weakModel,
+      reasoningEffort,
+      thinkingTokens,
     });
-    const options = settings.aider.options;
+
+    const rawOptionsArgs = (settings.aider.options.match(/(?:[^\s"]+|"[^"]*")+/g) as string[]) || [];
+    const optionsArgsSet = new Set(rawOptionsArgs);
+
+    const processedOptionsArgs: string[] = [];
+    for (let i = 0; i < rawOptionsArgs.length; i++) {
+      const arg = rawOptionsArgs[i];
+      if (arg === '--model') {
+        i++; // Skip the model value
+      } else {
+        processedOptionsArgs.push(arg.startsWith('"') && arg.endsWith('"') ? arg.slice(1, -1) : arg);
+      }
+    }
 
     const args = ['-m', 'connector'];
-    if (options) {
-      const optionsArgs = (options.match(/(?:[^\s"]+|"[^"]*")+/g) as string[]) || [];
-      // remove existing --model defined by user
-      const modelIndex = optionsArgs.indexOf('--model');
-      if (modelIndex !== -1 && modelIndex + 1 < optionsArgs.length) {
-        optionsArgs.splice(modelIndex, 2);
-      }
-      args.push(...optionsArgs.map((option) => (option.startsWith('"') && option.endsWith('"') ? option.slice(1, -1) : option)));
-    }
-    args.push(...['--no-check-update', '--no-show-model-warnings']);
 
+    args.push(...processedOptionsArgs);
+
+    args.push('--no-check-update', '--no-show-model-warnings');
     args.push('--model', mainModel);
 
     if (weakModel) {
       args.push('--weak-model', weakModel);
+    }
+
+    if (reasoningEffort !== undefined && !optionsArgsSet.has('--reasoning-effort')) {
+      args.push('--reasoning-effort', reasoningEffort);
+    }
+
+    if (thinkingTokens !== undefined && !optionsArgsSet.has('--thinking-tokens')) {
+      args.push('--thinking-tokens', thinkingTokens);
     }
 
     logger.info('Running Aider with args:', { args });
@@ -344,7 +368,10 @@ export class Project {
 
   public async runPrompt(prompt: string, mode?: Mode): Promise<ResponseCompletedData[]> {
     if (this.currentQuestion) {
-      this.answerQuestion('n');
+      if (this.answerQuestion('n', prompt)) {
+        // processed by the answerQuestion function
+        return [];
+      }
     }
 
     // If a prompt is already running, wait for it to finish
@@ -383,6 +410,9 @@ export class Project {
       // add messages to session
       this.sessionManager.addContextMessage(MessageRole.User, prompt);
       for (const response of responses) {
+        if (response.reflectedMessage) {
+          this.sessionManager.addContextMessage(MessageRole.User, response.reflectedMessage);
+        }
         if (response.content) {
           this.sessionManager.addContextMessage(MessageRole.Assistant, response.content);
         }
@@ -485,13 +515,13 @@ export class Project {
     return this.currentResponseMessageId;
   }
 
-  private getQuestionKey(question: QuestionData) {
-    return `${question.text}_${question.subject || ''}`;
+  private getQuestionKey(question: QuestionData): string {
+    return question.key || `${question.text}_${question.subject || ''}`;
   }
 
-  public answerQuestion(answer: string): void {
+  public answerQuestion(answer: string, userInput?: string): boolean {
     if (!this.currentQuestion) {
-      return;
+      return false;
     }
 
     logger.info('Answering question:', {
@@ -511,8 +541,18 @@ export class Project {
       this.questionAnswers.set(this.getQuestionKey(this.currentQuestion), yesNoAnswer);
     }
 
-    this.findMessageConnectors('answer-question').forEach((connector) => connector.sendAnswerQuestionMessage(yesNoAnswer));
+    if (!this.currentQuestion.internal) {
+      this.findMessageConnectors('answer-question').forEach((connector) => connector.sendAnswerQuestionMessage(yesNoAnswer));
+    }
     this.currentQuestion = null;
+
+    if (this.currentQuestionPromiseResolve) {
+      this.currentQuestionPromiseResolve([yesNoAnswer, userInput]);
+      this.currentQuestionPromiseResolve = null;
+      return true;
+    }
+
+    return false;
   }
 
   public async addFile(contextFile: ContextFile): Promise<void> {
@@ -549,12 +589,15 @@ export class Project {
     this.findMessageConnectors('drop-file').forEach((connector) => connector.sendDropFileMessage(pathToSend));
   }
 
-  public runCommand(command: string) {
+  public runCommand(command: string, addToHistory = true) {
     if (this.currentQuestion) {
       this.answerQuestion('n');
     }
 
     logger.info('Running command:', { command });
+    if (addToHistory) {
+      void this.addToInputHistory(`/${command}`);
+    }
     this.findMessageConnectors('run-command').forEach((connector) => connector.sendRunCommandMessage(command));
   }
 
@@ -627,7 +670,7 @@ export class Project {
     this.mainWindow.webContents.send('input-history-updated', inputHistoryData);
   }
 
-  public askQuestion(questionData: QuestionData) {
+  public askQuestion(questionData: QuestionData): Promise<[string, string | undefined]> {
     this.currentQuestion = questionData;
 
     const storedAnswer = this.questionAnswers.get(this.getQuestionKey(questionData));
@@ -643,12 +686,19 @@ export class Project {
         question: questionData,
         answer: storedAnswer,
       });
-      // Auto-answer based on stored preference
-      this.answerQuestion(storedAnswer);
-      return;
+
+      if (!questionData.internal) {
+        // Auto-answer based on stored preference
+        this.answerQuestion(storedAnswer);
+      }
+      return Promise.resolve([storedAnswer, undefined]);
     }
 
-    this.mainWindow.webContents.send('ask-question', questionData);
+    // Store the resolve function for the promise
+    return new Promise<[string, string | undefined]>((resolve) => {
+      this.currentQuestionPromiseResolve = resolve;
+      this.mainWindow.webContents.send('ask-question', questionData);
+    });
   }
 
   public setAllTrackedFiles(files: string[]) {
@@ -656,6 +706,14 @@ export class Project {
   }
 
   public setCurrentModels(modelsData: ModelsData) {
+    const currentSettings = this.store.getProjectSettings(this.baseDir);
+    const updatedSettings: ProjectSettings = {
+      ...currentSettings,
+      reasoningEffort: modelsData.reasoningEffort ? modelsData.reasoningEffort : undefined,
+      thinkingTokens: modelsData.thinkingTokens ? modelsData.thinkingTokens : undefined,
+    };
+    this.store.saveProjectSettings(this.baseDir, updatedSettings);
+
     this.models = {
       ...modelsData,
       architectModel: modelsData.architectModel !== undefined ? modelsData.architectModel : this.getArchitectModel(),
@@ -702,6 +760,18 @@ export class Project {
 
   public getContextFiles(): ContextFile[] {
     return this.sessionManager.getContextFiles();
+  }
+
+  public getRepoMap(): string {
+    return this.repoMap;
+  }
+
+  public setRepoMap(repoMap: string): void {
+    this.repoMap = repoMap;
+  }
+
+  public updateRepoMapFromConnector(repoMap: string): void {
+    this.setRepoMap(repoMap);
   }
 
   public openCommandOutput(command: string) {
@@ -760,9 +830,9 @@ export class Project {
     this.findMessageConnectors('add-message').forEach((connector) => connector.sendAddMessageMessage(role, content, acknowledge));
   }
 
-  public clearContext() {
+  public clearContext(addToHistory = false) {
     this.sessionManager.clearMessages();
-    this.runCommand('clear');
+    this.runCommand('clear', addToHistory);
     this.mainWindow.webContents.send('clear-messages', this.baseDir);
   }
 
@@ -839,5 +909,36 @@ export class Project {
 
     this.sessionManager.addContextMessage(role, content);
     this.sendAddMessage(role, content, false);
+  }
+
+  public async exportSessionToMarkdown(): Promise<void> {
+    logger.info('Exporting session to Markdown:', { baseDir: this.baseDir });
+    try {
+      const markdownContent = await this.sessionManager.generateSessionMarkdown();
+
+      if (markdownContent) {
+        const dialogResult = await dialog.showSaveDialog(this.mainWindow, {
+          title: 'Export Session to Markdown',
+          defaultPath: `${this.baseDir}/session-${new Date().toISOString().replace(/:/g, '-').substring(0, 19)}.md`,
+          filters: [{ name: 'Markdown Files', extensions: ['md'] }],
+        });
+        logger.info('showSaveDialog result:', { dialogResult });
+
+        const { filePath } = dialogResult;
+
+        if (filePath) {
+          try {
+            await fs.writeFile(filePath, markdownContent, 'utf8');
+            logger.info(`Session exported successfully to ${filePath}`);
+          } catch (writeError) {
+            logger.error('Failed to write session Markdown file:', { filePath, error: writeError });
+          }
+        } else {
+          logger.info('Markdown export cancelled by user.');
+        }
+      }
+    } catch (error) {
+      logger.error('Error exporting session to Markdown', { error });
+    }
   }
 }

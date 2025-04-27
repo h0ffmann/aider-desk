@@ -19,77 +19,100 @@ import {
 
 import type { LanguageModel } from 'ai';
 
-export const createLlm = (provider: LlmProvider): LanguageModel => {
+export const createLlm = (provider: LlmProvider, env: Record<string, string | undefined> = {}): LanguageModel => {
   if (isAnthropicProvider(provider)) {
-    if (!provider.apiKey) {
-      throw new Error('Anthropic API key is required');
+    const apiKey = provider.apiKey || env['ANTHROPIC_API_KEY'];
+    if (!apiKey) {
+      throw new Error('Anthropic API key is required in Agent provider settings or Aider environment variables (ANTHROPIC_API_KEY)');
     }
-    const anthropicProvider = createAnthropic({ apiKey: provider.apiKey });
+    const anthropicProvider = createAnthropic({ apiKey });
     return anthropicProvider(provider.model);
   } else if (isOpenAiProvider(provider)) {
-    if (!provider.apiKey) {
-      throw new Error('OpenAI API key is required');
+    const apiKey = provider.apiKey || env['OPENAI_API_KEY'];
+    if (!apiKey) {
+      throw new Error('OpenAI API key is required in Agent provider settings or Aider environment variables (OPENAI_API_KEY)');
     }
-    const openAIProvider = createOpenAI({ apiKey: provider.apiKey, compatibility: 'strict' });
-    return openAIProvider(provider.model);
+    const openAIProvider = createOpenAI({
+      apiKey,
+      compatibility: 'strict',
+    });
+    return openAIProvider(provider.model, {
+      structuredOutputs: false,
+    });
   } else if (isGeminiProvider(provider)) {
-    if (!provider.apiKey) {
-      throw new Error('Gemini API key is required');
+    const apiKey = provider.apiKey || env['GEMINI_API_KEY'];
+    if (!apiKey) {
+      throw new Error('Gemini API key is required in Agent provider settings or Aider environment variables (GEMINI_API_KEY)');
     }
-    const googleProvider = createGoogleGenerativeAI({ apiKey: provider.apiKey });
+    const googleProvider = createGoogleGenerativeAI({ apiKey });
     return googleProvider(provider.model);
   } else if (isDeepseekProvider(provider)) {
-    if (!provider.apiKey) {
-      throw new Error('Deepseek API key is required');
+    const apiKey = provider.apiKey || env['DEEPSEEK_API_KEY'];
+    if (!apiKey) {
+      throw new Error('Deepseek API key is required in Agent provider settings or Aider environment variables (DEEPSEEK_API_KEY)');
     }
-    const deepseekProvider = createDeepSeek({ apiKey: provider.apiKey });
+    const deepseekProvider = createDeepSeek({ apiKey });
     return deepseekProvider(provider.model);
   } else if (isOpenAiCompatibleProvider(provider)) {
-    if (!provider.apiKey) {
-      throw new Error('API key is required for OpenAI Compatible provider');
+    const apiKey = provider.apiKey || env['OPENAI_API_KEY'];
+    if (!apiKey) {
+      throw new Error(`API key is required for ${provider.name}. Check Agent provider settings or Aider environment variables (OPENAI_API_KEY).`);
     }
-    if (!provider.baseUrl) {
-      throw new Error('Base URL is required for OpenAI Compatible provider');
+    const baseUrl = provider.baseUrl || env['OPENAI_API_BASE'];
+    if (!baseUrl) {
+      throw new Error(`Base URL is required for ${provider.name} provider. Set it in Agent provider settings or via the OPENAI_API_BASE environment variable.`);
     }
-    if (!provider.model) {
-      throw new Error('Model name is required for OpenAI Compatible provider');
+    const model = provider.model;
+    if (!model) {
+      throw new Error(`Model name is required for ${provider.name} provider`);
     }
     // Use createOpenAICompatible to get a provider instance, then get the model
     const compatibleProvider = createOpenAICompatible({
       name: provider.name,
-      apiKey: provider.apiKey,
-      baseURL: provider.baseUrl,
+      apiKey,
+      baseURL: baseUrl,
     });
     return compatibleProvider(provider.model);
   } else if (isBedrockProvider(provider)) {
-    if (!provider.region) {
-      throw new Error('AWS region is required for Bedrock. You can set it in the MCP settings.');
+    const region = provider.region || env['AWS_REGION'];
+    const accessKeyId = provider.accessKeyId || env['AWS_ACCESS_KEY_ID'];
+    const secretAccessKey = provider.secretAccessKey || env['AWS_SECRET_ACCESS_KEY'];
+
+    if (!region) {
+      throw new Error('AWS region is required for Bedrock. You can set it in the MCP settings or Aider environment variables (AWS_REGION).');
     }
-    if (!provider.accessKeyId && !provider.secretAccessKey && !process.env.AWS_PROFILE) {
-      throw new Error('Either AWS_PROFILE environment variable or accessKeyId/secretAccessKey must be provided for Bedrock');
+    // Check if we have explicit keys or if AWS_PROFILE is set in the main process env
+    if (!accessKeyId && !secretAccessKey && !process.env.AWS_PROFILE) {
+      throw new Error(
+        'AWS credentials (accessKeyId/secretAccessKey) or AWS_PROFILE must be provided for Bedrock in Agent provider settings or Aider environment variables.',
+      );
     }
 
-    // AI SDK Bedrock provider handles credentials via environment variables or default chain
-    // Explicit credentials can be passed if needed, but let's rely on defaults first
+    // AI SDK Bedrock provider handles credentials via environment variables or default chain.
+    // We pass credentials explicitly only if they were found in config or env.
+    // Otherwise, we let the SDK handle the default credential chain (which includes AWS_PROFILE from process.env).
     const bedrockProviderInstance = createAmazonBedrock({
-      region: provider.region,
-      // Pass credentials if explicitly provided in settings
-      ...(provider.accessKeyId &&
-        provider.secretAccessKey && {
-          accessKeyId: provider.accessKeyId,
-          secretAccessKey: provider.secretAccessKey,
+      region,
+      ...(accessKeyId &&
+        secretAccessKey && {
+          accessKeyId,
+          secretAccessKey,
         }),
-      credentialProvider: (!provider.accessKeyId && !provider.secretAccessKey && fromNodeProviderChain()) || undefined,
+      // Let the SDK handle the default chain if explicit keys aren't provided
+      credentialProvider: !accessKeyId && !secretAccessKey ? fromNodeProviderChain() : undefined,
     });
     return bedrockProviderInstance(provider.model);
   } else if (isOllamaProvider(provider)) {
-    if (!provider.baseUrl) {
-      throw new Error('Base URL is required for Ollama provider');
+    const baseUrl = provider.baseUrl || env['OLLAMA_API_BASE'];
+    if (!baseUrl) {
+      throw new Error('Base URL is required for Ollama provider. Set it in Agent provider settings or via the OLLAMA_API_BASE environment variable.');
     }
     if (!provider.model) {
       throw new Error('Model name is required for Ollama provider');
     }
-    const ollamaInstance = createOllama({ baseURL: provider.baseUrl });
+    // Ensure the baseUrl ends with /api for ollama-ai-provider
+    const finalBaseUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+    const ollamaInstance = createOllama({ baseURL: finalBaseUrl });
     return ollamaInstance(provider.model, {
       simulateStreaming: true,
     });

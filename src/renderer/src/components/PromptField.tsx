@@ -27,7 +27,6 @@ type Props = {
   words?: string[];
   inputHistory?: string[];
   openModelSelector?: () => void;
-  defaultMode?: Mode;
   mode: Mode;
   onModeChanged: (mode: Mode) => void;
   onSubmitted?: (prompt: string) => void;
@@ -35,7 +34,7 @@ type Props = {
   clearMessages: () => void;
   scrapeWeb: (url: string) => void;
   question?: QuestionData | null;
-  answerQuestion?: (answer: string) => void;
+  answerQuestion: (answer: string) => void; // Changed to required as it's always passed
   interruptResponse: () => void;
   runCommand: (command: string) => void;
   runTests: (testCmd?: string) => void;
@@ -50,7 +49,6 @@ export const PromptField = React.forwardRef<PromptFieldRef, Props>(
       isActive = false,
       words = [],
       inputHistory = [],
-      defaultMode = 'code',
       mode,
       onModeChanged,
       showFileDialog,
@@ -77,7 +75,6 @@ export const PromptField = React.forwardRef<PromptFieldRef, Props>(
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(-1);
     const [historyIndex, setHistoryIndex] = useState<number>(-1);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-    const [modeLocked, setModeLocked] = useState(defaultMode === 'code' || defaultMode === 'agent');
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
     useDebounce(
@@ -110,17 +107,6 @@ export const PromptField = React.forwardRef<PromptFieldRef, Props>(
             const prompt = text.replace(command, '').trim();
             setText(prompt);
             const newMode = command.slice(1) as Mode;
-
-            if (newMode === 'code' || newMode === 'agent') {
-              // If the mode is code or agent, lock the mode
-              setModeLocked(true);
-            } else if (mode === newMode) {
-              // If the same command is used twice, toggle the lock
-              setModeLocked((prev) => !prev);
-            } else {
-              setModeLocked(false);
-            }
-
             onModeChanged(newMode);
             break;
           }
@@ -210,6 +196,7 @@ export const PromptField = React.forwardRef<PromptFieldRef, Props>(
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const newText = e.target.value;
       setText(newText);
+      setHistoryIndex(-1);
 
       const word = getCurrentWord(newText, e.target.selectionStart);
       setHighlightedSuggestionIndex(-1);
@@ -280,9 +267,6 @@ export const PromptField = React.forwardRef<PromptFieldRef, Props>(
           invokeCommand(confirmCommandMatch, text.split(' ').slice(1).join(' '));
         } else {
           window.api.runPrompt(baseDir, text, mode);
-          if (!modeLocked) {
-            onModeChanged(defaultMode);
-          }
           onSubmitted?.(text);
         }
         prepareForNextPrompt();
@@ -319,7 +303,7 @@ export const PromptField = React.forwardRef<PromptFieldRef, Props>(
         }
         if (e.key === 'Enter' && !e.shiftKey && selectedAnswer && ANSWERS.includes(selectedAnswer.toLowerCase())) {
           e.preventDefault();
-          answerQuestion?.(selectedAnswer);
+          answerQuestion(selectedAnswer); // Use the prop directly
           prepareForNextPrompt();
           return;
         }
@@ -403,45 +387,39 @@ export const PromptField = React.forwardRef<PromptFieldRef, Props>(
 
     const handleModeChange = (mode: Mode) => {
       onModeChanged(mode);
-      setModeLocked(mode === 'code' || mode === 'agent');
-    };
-
-    const handleLockChange = (locked: boolean) => {
-      setModeLocked(locked);
-      inputRef.current?.focus();
     };
 
     return (
       <div className="w-full relative">
         {question && (
           <div className="mb-2 p-3 bg-gradient-to-b from-neutral-950 to-neutral-900 rounded-md border border-neutral-700 text-sm">
-            <div className="text-white mb-2">{question.text}</div>
+            <div className="text-white text-sm mb-2">{question.text}</div>
             {question.subject && <div className="text-neutral-400 text-xs mb-3">{question.subject}</div>}
             <div className="flex gap-2">
               <button
-                onClick={() => answerQuestion?.('y')}
-                className={`px-2 py-0.5 text-xs rounded hover:bg-neutral-700 border border-neutral-600 ${selectedAnswer === 'y' ? 'bg-neutral-700' : 'bg-neutral-800'}`}
+                onClick={() => answerQuestion('y')}
+                className={`px-2 py-0.5 text-xs rounded hover:bg-neutral-700 border border-neutral-600 ${selectedAnswer === 'y' ? 'bg-neutral-700 border-neutral-400' : 'bg-neutral-850'}`}
                 title="Yes (Y)"
               >
                 {t('promptField.answers.yes')}
               </button>
               <button
-                onClick={() => answerQuestion?.('n')}
-                className={`px-2 py-0.5 text-xs rounded hover:bg-neutral-700 border border-neutral-600 ${selectedAnswer === 'n' ? 'bg-neutral-700' : 'bg-neutral-800'}`}
+                onClick={() => answerQuestion('n')}
+                className={`px-2 py-0.5 text-xs rounded hover:bg-neutral-700 border border-neutral-600 ${selectedAnswer === 'n' ? 'bg-neutral-700 border-neutral-400' : 'bg-neutral-850'}`}
                 title={t('promptField.answers.no')}
               >
                 {t('promptField.answers.no')}
               </button>
               <button
-                onClick={() => answerQuestion?.('a')}
-                className={`px-2 py-0.5 text-xs rounded hover:bg-neutral-700 border border-neutral-600 ${selectedAnswer === 'a' ? 'bg-neutral-700' : 'bg-neutral-800'}`}
+                onClick={() => answerQuestion('a')}
+                className={`px-2 py-0.5 text-xs rounded hover:bg-neutral-700 border border-neutral-600 ${selectedAnswer === 'a' ? 'bg-neutral-700 border-neutral-400' : 'bg-neutral-850'}`}
                 title={t('promptField.answers.always')}
               >
                 {t('promptField.answers.always')}
               </button>
               <button
-                onClick={() => answerQuestion?.('d')}
-                className={`px-2 py-0.5 text-xs rounded hover:bg-neutral-700 border border-neutral-600 ${selectedAnswer === 'd' ? 'bg-neutral-700' : 'bg-neutral-800'}`}
+                onClick={() => answerQuestion('d')}
+                className={`px-2 py-0.5 text-xs rounded hover:bg-neutral-700 border border-neutral-600 ${selectedAnswer === 'd' ? 'bg-neutral-700 border-neutral-400' : 'bg-neutral-850'}`}
                 title={t('promptField.answers.dontAsk')}
               >
                 {t('promptField.answers.dontAsk')}
@@ -487,7 +465,7 @@ export const PromptField = React.forwardRef<PromptFieldRef, Props>(
             )}
           </div>
           <div className="relative w-full h-7">
-            <ModeSelector mode={mode} locked={modeLocked} onModeChange={handleModeChange} onLockedChange={handleLockChange} />
+            <ModeSelector mode={mode} onModeChange={handleModeChange} />
           </div>
         </div>
         {suggestionsVisible && filteredSuggestions.length > 0 && (

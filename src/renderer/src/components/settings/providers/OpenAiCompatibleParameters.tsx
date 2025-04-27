@@ -58,7 +58,13 @@ export const OpenAiCompatibleParameters = ({ settings, setSettings }: Props) => 
     <div className="mt-2 space-y-2">
       <Input label={t('openai.baseUrl')} type="text" value={baseUrl} onChange={handleBaseUrlChange} placeholder={t('openai.baseUrlPlaceholder')} />
       <Input label={t('model.label')} type="text" value={model} onChange={(e) => handleModelChange(e.target.value)} placeholder={t('model.placeholder')} />
-      <Input label={t('openai.apiKey')} type="password" value={apiKey} onChange={handleApiKeyChange} />
+      <Input
+        label={t('openai.apiKey')}
+        type="password"
+        value={apiKey}
+        onChange={handleApiKeyChange}
+        placeholder={t('settings.agent.envVarPlaceholder', { envVar: 'OPENAI_API_KEY' })}
+      />
     </div>
   );
 };

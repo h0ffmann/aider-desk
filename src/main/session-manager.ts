@@ -344,6 +344,34 @@ export class SessionManager {
     }
   }
 
+  async generateSessionMarkdown(): Promise<string | null> {
+    let markdown = '';
+
+    for (const message of this.contextMessages) {
+      markdown += `### ${message.role.charAt(0).toUpperCase() + message.role.slice(1)}\n\n`;
+
+      if (message.role === 'user' || message.role === 'assistant') {
+        const content = extractTextContent(message.content);
+        if (content) {
+          markdown += `${content}\n\n`;
+        }
+      } else if (message.role === 'tool') {
+        if (Array.isArray(message.content)) {
+          for (const part of message.content) {
+            if (part.type === 'tool-result') {
+              const [, toolName] = extractServerNameToolName(part.toolName);
+              markdown += `**Tool Call ID:** \`${part.toolCallId}\`\n`;
+              markdown += `**Tool:** \`${toolName}\`\n`;
+              markdown += `**Result:**\n\`\`\`json\n${JSON.stringify(part.result, null, 2)}\n\`\`\`\n\n`;
+            }
+          }
+        }
+      }
+    }
+
+    return markdown;
+  }
+
   async delete(name: string): Promise<void> {
     logger.info('Deleting session:', { name });
     try {

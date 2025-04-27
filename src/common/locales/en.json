@@ -102,7 +102,7 @@
   "bedrock": {
     "apiKey": "API Key",
     "region": "Region",
-    "regionPlaceholder": "e.g. us-east-1",
+    "regionPlaceholder": "e.g. us-east-1 or AWS_REGION env",
     "accessKeyId": "Access Key ID",
     "accessKeyIdTooltip": "AWS access key ID. Can be left empty if AWS_PROFILE is set in environment.",
     "secretAccessKey": "Secret Access Key",
@@ -119,6 +119,7 @@
       "aider": "Aider",
       "agent": "Agent"
     },
+    "gui": "GUI",
     "startup": {
       "title": "Start Up",
       "emptySession": "Start with empty session",
@@ -126,7 +127,7 @@
       "specificSession": "Load specific session"
     },
     "language": "Language",
-    "mcp": {
+    "agent": {
       "mcpServers": "MCP Servers",
       "provider": "Provider",
       "maxIterations": "Max Iterations",
@@ -139,7 +140,8 @@
       "rateLimiting": "Sets the minimum time between tool calls to prevent rate limiting (e.g. for Brave or other API-constrained services).",
       "tokensPerResponse": "Maximum number of tokens the MCP agent can use per response.",
       "addServer": "Add server",
-      "editConfig": "Edit Config"
+      "editConfig": "Edit Config",
+      "envVarPlaceholder": "{{envVar}} env if empty"
     },
     "aider": {
       "options": "Options",
@@ -151,7 +153,8 @@
     },
     "common": {
       "showSecrets": "Show Secrets"
-    }
+    },
+    "zoom": "Zoom level"
   },
   "messages": {
     "thinking": "Thinking...",
@@ -198,16 +201,23 @@
     "collapseAll": "Collapse all"
   },
   "modelSelector": {
-    "mainModel": "Main model:",
-    "editorModel": "Editor model:",
-    "weakModel": "Weak model:",
-    "architectModel": "Architect model:",
-    "maxTokens": "Max tokens:",
+    "mainModel": "Main model",
+    "editorModel": "Editor model",
+    "weakModel": "Weak model",
+    "architectModel": "Architect model",
+    "agentModel": "Agent model",
     "reasoning": "Reasoning",
     "thinkingTokens": "Thinking tokens",
     "loadingModel": "Loading model...",
     "searchPlaceholder": "Search models or enter custom name...",
     "removePreferred": "Remove from preferred models"
+  },
+  "modelInfo": {
+    "noInfo": "No model information available.",
+    "maxInputTokens": "Max Input Tokens",
+    "maxOutputTokens": "Max Output Tokens",
+    "inputCostPerMillion": "Input Cost / 1M Tokens",
+    "outputCostPerMillion": "Output Cost / 1M Tokens"
   },
   "mcp": {
     "noDescription": "No description",
@@ -228,8 +238,15 @@
     "aiderToolsTooltip": "MCP agent can use Aider to perform add/drop context files actions and run prompts.",
     "includeContextFiles": "Include context files",
     "includeFilesTooltip": "Adds content of context files into the chat of MCP agent. This will increase token usage.",
+    "includeRepoMap": "Include repo map",
+    "includeRepoMapTooltip": "Include the repository map in the agent's context. This can help the agent understand the project structure, but may increase token usage.",
     "servers": "MCP servers",
-    "configureServers": "Configure servers"
+    "configureServers": "Configure servers",
+    "approval": {
+      "never": "Never",
+      "always": "Always",
+      "ask": "Ask"
+    }
   },
   "autocompletion": {
     "placeholder": "Type to search..."
@@ -263,6 +280,8 @@
     "loadFiles_one": "Load {{count}} file",
     "loadFiles_other": "Load {{count}} files",
     "saveAsNew": "Save as new",
+    "exportAsMarkdown": "Export as Markdown",
+    "exportAsImage": "Export as Image",
     "deleteTitle": "Delete Session",
     "deleteConfirm": "Are you sure you want to delete the session \"{{name}}\"?",
     "deleteWarning": "This action cannot be undone.",
@@ -322,5 +341,8 @@
     "invalidCommand": "Invalid command",
     "stopResponse": "Stop response",
     "sendMessage": "Send message (Enter)"
+  },
+  "projectBar": {
+    "toggleMarkdown": "Markdown rendering"
   }
 }

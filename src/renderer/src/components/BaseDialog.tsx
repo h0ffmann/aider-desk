@@ -32,7 +32,11 @@ export const BaseDialog = ({ title, onClose, children, footer, width = 384, clos
 
   return (
     <div className="fixed inset-0 top-0 bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <FocusTrap>
+      <FocusTrap
+        focusTrapOptions={{
+          allowOutsideClick: true,
+        }}
+      >
         <div
           style={{ width: `${width}px` }}
           className="bg-neutral-800/95 shadow-2xl rounded-xl border border-neutral-700/50 max-h-[90vh] flex flex-col"

@@ -1,17 +1,24 @@
-import { useEffect, useRef, useState, WheelEvent } from 'react';
+import { useEffect, useRef, useState, WheelEvent, useImperativeHandle, forwardRef } from 'react';
+import { toPng } from 'html-to-image';
 
 import { MessageBlock } from './MessageBlock';
 
 import { Message } from '@/types/message';
 
+export type MessagesRef = {
+  exportToImage: () => void;
+};
+
 type Props = {
   baseDir: string;
   messages: Message[];
   allFiles?: string[];
+  renderMarkdown: boolean;
 };
 
-export const Messages = ({ baseDir, messages, allFiles = [] }: Props) => {
+export const Messages = forwardRef<MessagesRef, Props>(({ baseDir, messages, allFiles = [], renderMarkdown }, ref) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [scrollingPaused, setScrollingPaused] = useState(false);
 
   const handleScroll = (e: WheelEvent<HTMLDivElement>) => {
@@ -21,20 +28,41 @@ export const Messages = ({ baseDir, messages, allFiles = [] }: Props) => {
   };
 
   useEffect(() => {
-    const hasLoadingMessage = messages.some((msg) => msg.type === 'loading');
-    if (hasLoadingMessage) {
-      setScrollingPaused(false);
-    }
-
-    if (hasLoadingMessage || !scrollingPaused) {
+    if (!scrollingPaused) {
       messagesEndRef.current?.scrollIntoView();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages]);
+  }, [messages, scrollingPaused]);
+
+  const exportToImage = async () => {
+    const messagesContainer = messagesContainerRef.current;
+    if (messagesContainer === null) {
+      return;
+    }
+
+    try {
+      const dataUrl = await toPng(messagesContainer, {
+        cacheBust: true,
+        height: messagesContainer.scrollHeight,
+      });
+      const link = document.createElement('a');
+      link.download = `session-${new Date().toISOString().replace(/:/g, '-').substring(0, 19)}.png`;
+      link.href = dataUrl;
+      link.click();
+      link.remove();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to export chat as PNG', err);
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    exportToImage,
+  }));
 
   return (
     <div
-      className="flex flex-col overflow-y-auto max-h-full p-4
+      ref={messagesContainerRef}
+      className="relative flex flex-col overflow-y-auto max-h-full p-4
       scrollbar-thin
       scrollbar-track-neutral-900
       scrollbar-thumb-neutral-700
@@ -42,9 +70,11 @@ export const Messages = ({ baseDir, messages, allFiles = [] }: Props) => {
       onWheel={handleScroll}
     >
       {messages.map((message, index) => (
-        <MessageBlock key={index} baseDir={baseDir} message={message} allFiles={allFiles} />
+        <MessageBlock key={index} baseDir={baseDir} message={message} allFiles={allFiles} renderMarkdown={renderMarkdown} />
       ))}
       <div ref={messagesEndRef} />
     </div>
   );
-};
+});
+
+Messages.displayName = 'Messages';

@@ -1,5 +1,5 @@
-import { ElementType, MouseEvent, useRef, useState } from 'react';
-import { CgLock, CgLockUnlock, CgTerminal } from 'react-icons/cg';
+import { ElementType, useRef, useState } from 'react';
+import { CgTerminal } from 'react-icons/cg';
 import { FaRegQuestionCircle } from 'react-icons/fa';
 import { AiOutlineFileSearch } from 'react-icons/ai';
 import { RiRobot2Line } from 'react-icons/ri';
@@ -8,8 +8,7 @@ import { MdKeyboardArrowDown, MdKeyboardArrowUp } from 'react-icons/md';
 import { Mode } from '@common/types';
 import { useTranslation } from 'react-i18next';
 
-import { McpSelector } from './McpSelector';
-import { StyledTooltip } from './common/StyledTooltip';
+import { AgentSelector } from './McpSelector';
 
 import { useClickOutside } from '@/hooks/useClickOutside';
 
@@ -17,7 +16,6 @@ type ModeConfig = {
   icon: ElementType;
   labelKey: string;
   tooltipKey: string;
-  isLockable: boolean;
 };
 
 const MODE_CONFIG: Record<Mode, ModeConfig> = {
@@ -25,31 +23,26 @@ const MODE_CONFIG: Record<Mode, ModeConfig> = {
     icon: CgTerminal,
     labelKey: 'mode.code',
     tooltipKey: 'modeTooltip.code',
-    isLockable: false,
   },
   agent: {
     icon: RiRobot2Line,
     labelKey: 'mode.agent',
     tooltipKey: 'modeTooltip.agent',
-    isLockable: false,
   },
   ask: {
     icon: FaRegQuestionCircle,
     labelKey: 'mode.ask',
     tooltipKey: 'modeTooltip.ask',
-    isLockable: true,
   },
   architect: {
     icon: GoProjectRoadmap,
     labelKey: 'mode.architect',
     tooltipKey: 'modeTooltip.architect',
-    isLockable: true,
   },
   context: {
     icon: AiOutlineFileSearch,
     labelKey: 'mode.context',
     tooltipKey: 'modeTooltip.context',
-    isLockable: true,
   },
 };
 
@@ -57,12 +50,10 @@ const MODES_ORDER: Mode[] = ['code', 'agent', 'ask', 'architect', 'context'];
 
 type Props = {
   mode: Mode;
-  locked: boolean;
   onModeChange: (mode: Mode) => void;
-  onLockedChange: (locked: boolean) => void;
 };
 
-export const ModeSelector = ({ mode, locked, onModeChange, onLockedChange }: Props) => {
+export const ModeSelector = ({ mode, onModeChange }: Props) => {
   const { t } = useTranslation();
   const [modeSelectorVisible, setModeSelectorVisible] = useState(false);
   const modeSelectorRef = useRef<HTMLDivElement>(null);
@@ -76,12 +67,7 @@ export const ModeSelector = ({ mode, locked, onModeChange, onLockedChange }: Pro
     setModeSelectorVisible(false);
   };
 
-  const handleLockClick = (e: MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    onLockedChange(!locked);
-  };
-
-  const { icon: CurrentModeIcon, labelKey: currentModeLabelKey, isLockable: isCurrentModeLockable } = MODE_CONFIG[mode];
+  const { icon: CurrentModeIcon, labelKey: currentModeLabelKey } = MODE_CONFIG[mode];
 
   return (
     <div className="relative flex items-center gap-1.5" ref={modeSelectorRef}>
@@ -93,19 +79,8 @@ export const ModeSelector = ({ mode, locked, onModeChange, onLockedChange }: Pro
         <span className="mb-[-2px] ml-1 text-xxs">{t(currentModeLabelKey)}</span>
         {modeSelectorVisible ? <MdKeyboardArrowUp className="w-4 h-4 ml-0.5" /> : <MdKeyboardArrowDown className="w-4 h-4 ml-0.5" />}
       </button>
-      {isCurrentModeLockable && (
-        <button
-          onClick={handleLockClick}
-          className="px-2 py-1 bg-neutral-850 text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100 focus:outline-none transition-colors duration-200 border-neutral-600 border rounded-md"
-          data-tooltip-id="mode-lock-tooltip"
-          data-tooltip-content={locked ? t('common.unlock') : t('common.lock')}
-        >
-          {locked ? <CgLock className="w-4 h-4" /> : <CgLockUnlock className="w-4 h-4" />}
-        </button>
-      )}
-      {isCurrentModeLockable && <StyledTooltip id="mode-lock-tooltip" />}
 
-      {mode === 'agent' && <McpSelector />}
+      {mode === 'agent' && <AgentSelector />}
 
       {modeSelectorVisible && (
         <div className="absolute bottom-full mb-1 bg-neutral-900 border border-neutral-700 rounded-md shadow-lg z-10 min-w-[150px]">

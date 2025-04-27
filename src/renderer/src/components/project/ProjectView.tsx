@@ -33,7 +33,7 @@ import {
 } from '@/types/message';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ContextFiles } from '@/components/ContextFiles';
-import { Messages } from '@/components/message/Messages';
+import { Messages, MessagesRef } from '@/components/message/Messages';
 import { AddFileDialog } from '@/components/project/AddFileDialog';
 import { ProjectBar, ProjectTopBarRef } from '@/components/project/ProjectBar';
 import { PromptField, PromptFieldRef } from '@/components/PromptField';
@@ -64,16 +64,23 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
   const [tokensInfo, setTokensInfo] = useState<TokensInfoData | null>(null);
   const [question, setQuestion] = useState<QuestionData | null>(null);
   const [mode, setMode] = useState<Mode>('code');
+  const [renderMarkdown, setRenderMarkdown] = useState(project.settings?.renderMarkdown ?? false);
   const [showFrozenDialog, setShowFrozenDialog] = useState(false);
   const processingMessageRef = useRef<ResponseMessage | null>(null);
   const promptFieldRef = useRef<PromptFieldRef>(null);
   const projectTopBarRef = useRef<ProjectTopBarRef>(null);
+  const messagesRef = useRef<MessagesRef>(null);
   const frozenTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const savedMode = localStorage.getItem('aider-desk-mode');
-    setMode(savedMode === 'code' || savedMode === 'agent' ? savedMode : 'code');
-  }, []);
+    const loadProjectSettings = async () => {
+      const settings = await window.api.getProjectSettings(project.baseDir);
+      setMode(settings.currentMode);
+      setRenderMarkdown(settings.renderMarkdown ?? false);
+    };
+
+    void loadProjectSettings();
+  }, [project.baseDir]);
 
   useEffect(() => {
     window.api.startProject(project.baseDir);
@@ -354,15 +361,6 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
     promptFieldRef.current?.focus();
   };
 
-  const onSubmitted = () => {
-    if (question) {
-      if (question.answerFunction) {
-        question.answerFunction('n');
-      }
-      setQuestion(null);
-    }
-  };
-
   const showFileDialog = (readOnly: boolean) => {
     setAddFileDialogOptions({
       readOnly,
@@ -370,8 +368,7 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
   };
 
   const clearMessages = (clearContext = true) => {
-    const lastModelsMessage = messages.filter((message) => message.type === 'models').pop();
-    setMessages(lastModelsMessage ? [lastModelsMessage] : []);
+    setMessages([]);
     setProcessing(false);
     processingMessageRef.current = null;
 
@@ -390,11 +387,7 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
 
   const answerQuestion = (answer: string) => {
     if (question) {
-      if (question.answerFunction) {
-        question.answerFunction(answer);
-      } else {
-        window.api.answerQuestion(project.baseDir, answer);
-      }
+      window.api.answerQuestion(project.baseDir, answer);
       setQuestion(null);
     }
   };
@@ -470,8 +463,17 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
 
   const handleModeChange = (mode: Mode) => {
     setMode(mode);
-    if (mode === 'code' || mode === 'agent') {
-      localStorage.setItem('aider-desk-mode', mode);
+    window.api.patchProjectSettings(project.baseDir, { currentMode: mode });
+  };
+
+  const handleRenderMarkdownChanged = (renderMarkdown: boolean) => {
+    setRenderMarkdown(renderMarkdown);
+    window.api.patchProjectSettings(project.baseDir, { renderMarkdown });
+  };
+
+  const handleSubmitted = () => {
+    if (question) {
+      setQuestion(null);
     }
   };
 
@@ -490,6 +492,10 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
     void window.api.restartProject(project.baseDir);
   };
 
+  const exportMessagesToImage = () => {
+    messagesRef.current?.exportToImage();
+  };
+
   return (
     <div className="flex h-full bg-gradient-to-b from-neutral-950 to-neutral-900 relative">
       {loading && (
@@ -505,12 +511,16 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
             baseDir={project.baseDir}
             modelsData={modelsData}
             allModels={autocompletionData?.models}
-            architectMode={mode === 'architect'}
+            mode={mode}
+            renderMarkdown={renderMarkdown}
             onModelChange={handleModelChange}
+            onRenderMarkdownChanged={handleRenderMarkdownChanged}
+            onExportSessionToImage={exportMessagesToImage}
+            runCommand={runCommand}
           />
         </div>
         <div className="flex-grow overflow-y-auto">
-          <Messages baseDir={project.baseDir} messages={messages} allFiles={autocompletionData?.allFiles} />
+          <Messages ref={messagesRef} baseDir={project.baseDir} messages={messages} allFiles={autocompletionData?.allFiles} renderMarkdown={renderMarkdown} />
         </div>
         <div className="relative bottom-0 w-full p-4 pb-2 flex-shrink-0 flex border-t border-neutral-800">
           <PromptField
@@ -520,6 +530,7 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
             processing={processing}
             mode={mode}
             onModeChanged={handleModeChange}
+            onSubmitted={handleSubmitted}
             isActive={isActive}
             words={autocompletionData?.words}
             clearMessages={clearMessages}
@@ -532,7 +543,6 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
             runTests={runTests}
             openModelSelector={() => projectTopBarRef.current?.openMainModelSelector()}
             disabled={!modelsData}
-            onSubmitted={onSubmitted}
           />
         </div>
       </div>

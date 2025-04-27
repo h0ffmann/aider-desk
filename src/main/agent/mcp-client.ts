@@ -1,8 +1,9 @@
 import { Project } from 'src/main/project';
-import { AgentConfig, McpServerConfig, McpTool } from '@common/types';
+import { McpServerConfig, McpTool, QuestionData, ToolApprovalState } from '@common/types';
 import { ZodSchema } from 'zod';
 import { Client as McpSdkClient } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { Store } from 'src/main/store'; // Added Store
 import { jsonSchemaToZod } from '@n8n/json-schema-to-zod';
 import logger from 'src/main/logger';
 import { delay, SERVER_TOOL_SEPARATOR } from '@common/utils';
@@ -65,6 +66,13 @@ export const initMcpClient = async (serverName: string, originalServerConfig: Mc
     args = ['/c', 'npx', ...args];
   }
 
+  // If command is 'docker', ensure '--init' is present so the container properly handles SIGINT and SIGTERM
+  if (command === 'docker') {
+    if (!args.includes('--init')) {
+      args = ['--init', ...args];
+    }
+  }
+
   const transport = new StdioClientTransport({
     command,
     args,
@@ -111,8 +119,6 @@ export const initMcpClient = async (serverName: string, originalServerConfig: Mc
   return clientHolder;
 };
 
-let lastToolCallTime = 0;
-
 /**
  * Fixes the input schema for various providers.
  */
@@ -123,20 +129,19 @@ const fixInputSchema = (provider: LlmProvider, inputSchema: JsonSchema): JsonSch
 
     if (fixedSchema.properties) {
       for (const key of Object.keys(fixedSchema.properties)) {
-        let property = fixedSchema.properties[key];
+        const property = fixedSchema.properties[key];
 
-        // Handle anyOf with empty schemas
-        if (property.anyOf && Array.isArray(property.anyOf)) {
-          // Remove empty schemas
-          property.anyOf = property.anyOf.filter((schema: Record<string, unknown>) => Object.keys(schema).length > 0);
-
-          if (property.anyOf.length === 0) {
-            delete property.anyOf;
-          } else if (property.anyOf.length === 1) {
-            // Flatten single schema
-            fixedSchema.properties[key] = property.anyOf[0];
-            property = fixedSchema.properties[key];
-          }
+        if (property.anyOf) {
+          property.any_of = property.anyOf;
+          delete property.anyOf;
+        }
+        if (property.oneOf) {
+          property.one_of = property.oneOf;
+          delete property.oneOf;
+        }
+        if (property.allOf) {
+          property.all_of = property.allOf;
+          delete property.allOf;
         }
 
         // gemini does not like "default" in the schema
@@ -170,14 +175,17 @@ const fixInputSchema = (provider: LlmProvider, inputSchema: JsonSchema): JsonSch
   return inputSchema;
 };
 
+let lastToolCallTime = 0;
+
 export const convertMpcToolToAiSdkTool = (
   provider: LlmProvider,
-  agentConfig: AgentConfig,
   serverName: string,
   project: Project,
+  store: Store,
   mcpClient: McpSdkClient,
   toolDef: McpTool,
 ): Tool => {
+  const toolId = `${serverName}${SERVER_TOOL_SEPARATOR}${toolDef.name}`;
   let zodSchema: ZodSchema;
   try {
     zodSchema = jsonSchemaToZod(fixInputSchema(provider, toolDef.inputSchema));
@@ -187,15 +195,51 @@ export const convertMpcToolToAiSdkTool = (
     zodSchema = jsonSchemaToZod({ type: 'object', properties: {} });
   }
 
-  const execute = async (params: { [x: string]: unknown } | undefined, { toolCallId }: ToolExecutionOptions) => {
-    project.addToolMessage(toolCallId, serverName, toolDef.name, params);
+  const execute = async (args: { [x: string]: unknown } | undefined, { toolCallId }: ToolExecutionOptions) => {
+    // --- Tool Approval Logic ---
+    const currentSettings = store.getSettings();
+    const currentAgentConfig = currentSettings.agentConfig; // Use current config
+    const currentApprovalState = currentAgentConfig.toolApprovals[toolId] || ToolApprovalState.Always; // Default to Always
 
-    // Enforce minimum time between tool calls
+    if (currentApprovalState === ToolApprovalState.Never) {
+      logger.warn(`Tool execution denied (Never): ${toolId}`);
+      return `Tool execution denied by user configuration (${toolId}).`;
+    }
+
+    project.addToolMessage(toolCallId, serverName, toolDef.name, args);
+
+    if (currentApprovalState === ToolApprovalState.Ask) {
+      const questionData: QuestionData = {
+        baseDir: project.baseDir,
+        text: `Approve tool ${toolDef.name} from MCP ${serverName}?`,
+        subject: `${JSON.stringify(args)}`,
+        defaultAnswer: 'y',
+        key: toolId, // Use toolId as the key for storing the answer
+      };
+
+      // Ask the question and wait for the answer
+      const [yesNoAnswer, userInput] = await project.askQuestion(questionData);
+
+      const isApproved = yesNoAnswer === 'y';
+
+      if (!isApproved) {
+        logger.warn(`Tool execution denied by user: ${toolId}`);
+        return `Tool execution denied by user.${userInput ? ` User input: ${userInput}` : ''}`;
+      }
+      logger.debug(`Tool execution approved by user: ${toolId}`);
+    } else {
+      // If Always approved
+      logger.debug(`Tool execution automatically approved (Always): ${toolId}`);
+    }
+    // --- End Tool Approval Logic ---
+
+    // Enforce minimum time between tool calls (using potentially updated agentConfig)
     const timeSinceLastCall = Date.now() - lastToolCallTime;
-    const remainingDelay = agentConfig.minTimeBetweenToolCalls - timeSinceLastCall;
+    const currentMinTime = currentAgentConfig.minTimeBetweenToolCalls; // Use current value
+    const remainingDelay = currentMinTime - timeSinceLastCall;
 
     if (remainingDelay > 0) {
-      logger.debug(`Delaying tool call by ${remainingDelay}ms to respect minTimeBetweenToolCalls`);
+      logger.debug(`Delaying tool call by ${remainingDelay}ms to respect minTimeBetweenToolCalls (${currentMinTime}ms)`);
       await delay(remainingDelay);
     }
 
@@ -203,7 +247,7 @@ export const convertMpcToolToAiSdkTool = (
       const response = await mcpClient.callTool(
         {
           name: toolDef.name,
-          arguments: params,
+          arguments: args,
         },
         undefined,
         {

@@ -78,8 +78,8 @@
   },
   "openai": {
     "apiKey": "API 密钥",
-    "model": "模型",
     "baseUrl": "基础 URL",
+    "modelName": "模型",
     "baseUrlPlaceholder": "例如 http://localhost:8080/v1"
   },
   "anthropic": {
@@ -115,6 +115,7 @@
       "aider": "Aider",
       "agent": "服务器"
     },
+    "gui": "GUI",
     "startup": {
       "title": "启动",
       "emptySession": "以空会话启动",
@@ -122,7 +123,7 @@
       "specificSession": "加载特定会话"
     },
     "language": "语言",
-    "mcp": {
+    "agent": {
       "mcpServers": "MCP 服务器",
       "provider": "提供商",
       "maxIterations": "最大迭代次数",
@@ -136,7 +137,8 @@
       "rateLimiting": "设置工具调用之间的最小时间以防止速率限制(例如对于 Brave 或其他 API 受限的服务)。",
       "tokensPerResponse": "MCP 代理每次响应可以使用的最大令牌数。",
       "addServer": "添加服务器",
-      "editConfig": "编辑配置"
+      "editConfig": "编辑配置",
+      "envVarPlaceholder": "如果为空，则使用 {{envVar}} 环境变量"
     },
     "aider": {
       "options": "选项",
@@ -148,7 +150,8 @@
     },
     "common": {
       "showSecrets": "显示密钥"
-    }
+    },
+    "zoom": "缩放级别"
   },
   "messages": {
     "thinking": "思考中...",
@@ -195,16 +198,23 @@
     "collapseAll": "全部折叠"
   },
   "modelSelector": {
-    "mainModel": "主模型:",
-    "editorModel": "编辑器模型:",
+    "mainModel": "主模型",
+    "editorModel": "编辑器模型",
     "weakModel": "弱模型:",
-    "architectModel": "架构模型:",
-    "maxTokens": "最大令牌数:",
+    "architectModel": "架构模型",
+    "agentModel": "代理模型",
     "reasoning": "推理",
     "thinkingTokens": "思考令牌",
     "loadingModel": "加载模型中...",
     "searchPlaceholder": "搜索模型或输入自定义名称...",
     "removePreferred": "从首选模型中移除"
+  },
+  "modelInfo": {
+    "noInfo": "无模型信息可用。",
+    "maxInputTokens": "最大输入令牌数",
+    "maxOutputTokens": "最大输出令牌数",
+    "inputCostPerMillion": "每百万输入令牌成本",
+    "outputCostPerMillion": "每百万输出令牌成本"
   },
   "mcp": {
     "noDescription": "无描述",
@@ -225,8 +235,15 @@
     "aiderToolsTooltip": "MCP代理可以使用Aider执行添加/删除上下文文件操作和运行提示。",
     "includeContextFiles": "包含上下文文件",
     "includeFilesTooltip": "将上下文文件内容添加到MCP代理的聊天中。这将增加令牌使用量。",
+    "includeRepoMap": "包含仓库地图",
+    "includeRepoMapTooltip": "在代理的上下文中包含仓库地图。这有助于代理理解项目结构，但可能会增加token使用量。",
     "servers": "MCP服务器",
-    "configureServers": "配置服务器"
+    "configureServers": "配置服务器",
+    "approval": {
+      "never": "从不",
+      "always": "总是",
+      "ask": "询问"
+    }
   },
   "autocompletion": {
     "placeholder": "输入以搜索..."
@@ -260,6 +277,8 @@
     "loadFiles_one": "加载{{count}}个文件",
     "loadFiles_other": "加载{{count}}个文件",
     "saveAsNew": "另存为新",
+    "exportAsMarkdown": "导出为Markdown",
+    "exportAsImage": "导出为图片",
     "deleteTitle": "删除会话",
     "deleteConfirm": "确定要删除会话\"{{name}}\"?",
     "deleteWarning": "此操作无法撤销。",
@@ -319,5 +338,8 @@
     "invalidCommand": "无效命令",
     "stopResponse": "停止响应",
     "sendMessage": "发送消息(Enter)"
+  },
+  "projectBar": {
+    "toggleMarkdown": "Markdown 渲染"
   }
 }

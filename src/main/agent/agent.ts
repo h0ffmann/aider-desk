@@ -1,12 +1,13 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-import { ContextFile, ContextMessage, McpServerConfig, McpTool, UsageReportData } from '@common/types';
+import { ContextFile, ContextMessage, McpServerConfig, McpTool, ToolApprovalState, UsageReportData } from '@common/types';
 import { APICallError, generateText, InvalidToolArgumentsError, NoSuchToolError, streamText } from 'ai'; // Added InvalidToolArgumentsError
 import { v4 as uuidv4 } from 'uuid';
 import { calculateCost, delay, extractServerNameToolName, SERVER_TOOL_SEPARATOR } from '@common/utils';
 import { getActiveProvider, LlmProvider } from '@common/llm-providers';
 import { getSystemPrompt } from 'src/main/agent/prompts';
+import { parse } from '@dotenvx/dotenvx';
 
 import logger from '../logger';
 import { Store } from '../store';
@@ -20,29 +21,12 @@ import { ClientHolder, convertMpcToolToAiSdkTool, initMcpClient } from './mcp-cl
 import type { CoreMessage, StepResult, ToolSet } from 'ai';
 
 export class Agent {
-  private store: Store;
   private currentInitId: string | null = null;
   private initializedForProject: Project | null = null;
   private clients: ClientHolder[] = [];
   private abortController: AbortController | null = null;
 
-  constructor(store: Store) {
-    this.store = store;
-    this.initializeDefaultServers();
-  }
-
-  private async initializeDefaultServers() {
-    const settings = this.store.getSettings();
-    if (settings.agentConfig.mcpServers) {
-      for (const [serverName, config] of Object.entries(settings.agentConfig.mcpServers)) {
-        try {
-          await this.reloadMcpServer(serverName, config);
-        } catch (error) {
-          logger.error(`Failed to initialize default MCP server ${serverName}:`, error);
-        }
-      }
-    }
-  }
+  constructor(private readonly store: Store) {}
 
   async initMcpServers(project: Project | null = this.initializedForProject, initId = uuidv4()) {
     // Set the current init ID to track this specific initialization process
@@ -319,13 +303,18 @@ export class Agent {
 
       // Process tools for this enabled server
       clientHolder.tools.forEach((tool) => {
-        const fullToolName = `${clientHolder.serverName}${SERVER_TOOL_SEPARATOR}${tool.name}`;
-        // Skip disabled tools
-        if (agentConfig.disabledTools.includes(fullToolName)) {
-          return;
+        const toolId = `${clientHolder.serverName}${SERVER_TOOL_SEPARATOR}${tool.name}`;
+
+        // Check approval state first
+        const approvalState = agentConfig.toolApprovals[toolId];
+
+        // Skip tools marked as 'Never' approved
+        if (approvalState === ToolApprovalState.Never) {
+          logger.debug(`Skipping tool due to 'Never' approval state: ${toolId}`);
+          return; // Do not add the tool if it's never approved
         }
 
-        acc[fullToolName] = convertMpcToolToAiSdkTool(activeProvider, agentConfig, clientHolder.serverName, project, clientHolder.client, tool);
+        acc[toolId] = convertMpcToolToAiSdkTool(activeProvider, clientHolder.serverName, project, this.store, clientHolder.client, tool);
       });
 
       return acc;
@@ -347,7 +336,12 @@ export class Agent {
     });
 
     try {
-      const model = createLlm(activeProvider);
+      // Parse Aider environment variables
+      const env = parse(this.store.getSettings().aider.environmentVariables);
+      const model = createLlm(activeProvider, {
+        ...process.env,
+        ...env,
+      });
       const systemPrompt = await getSystemPrompt(project.baseDir, agentConfig.useAiderTools, agentConfig.includeContextFiles, agentConfig.customInstructions);
 
       // repairToolCall function that attempts to repair tool calls
@@ -528,6 +522,21 @@ export class Agent {
   private async prepareMessages(project: Project): Promise<CoreMessage[]> {
     const { agentConfig } = this.store.getSettings();
     const messages = project.getContextMessages();
+
+    // Add repo map if enabled
+    if (agentConfig.includeRepoMap) {
+      const repoMap = project.getRepoMap();
+      if (repoMap) {
+        messages.push({
+          role: 'user',
+          content: repoMap,
+        });
+        messages.push({
+          role: 'assistant',
+          content: 'Ok, I will use the repository map as a reference.',
+        });
+      }
+    }
 
     if (agentConfig.includeContextFiles) {
       // Get and store new context files messages

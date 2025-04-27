@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import os
 import sys
 import asyncio
@@ -238,14 +239,24 @@ def create_coder(connector):
   coder.commands.io = io
   coder.io = io
 
+  coder.commands.io = io
+  coder.io = io
+
   return coder
 
 class Connector:
-  def __init__(self, base_dir, watch_files=False, server_url="http://localhost:24337"):
+  def __init__(self, base_dir, watch_files=False, server_url="http://localhost:24337", reasoning_effort=None, thinking_tokens=None):
     self.base_dir = base_dir
     self.server_url = server_url
+    self.reasoning_effort = reasoning_effort
+    self.thinking_tokens = thinking_tokens
 
     self.coder = create_coder(self)
+    if reasoning_effort is not None:
+      self.coder.main_model.set_reasoning_effort(reasoning_effort)
+    if thinking_tokens is not None:
+      self.coder.main_model.set_thinking_tokens(thinking_tokens)
+
     self.coder.yield_stream = True
     self.coder.stream = True
     self.coder.pretty = False
@@ -306,6 +317,7 @@ class Connector:
     await self.send_update_context_files()
     await self.send_autocompletion()
     await self.send_current_models()
+    await self.send_repo_map()
 
   async def on_message(self, data):
     await self.process_message(data)
@@ -396,6 +408,9 @@ class Connector:
         model = models.Model(main_model, weak_model=weak_model)
         models.sanity_check_models(self.coder.io, model)
 
+        model.set_reasoning_effort(self.coder.main_model.get_reasoning_effort())
+        model.set_thinking_tokens(self.coder.main_model.get_thinking_tokens())
+
         self.coder = Coder.create(
           from_coder=self.coder,
           main_model=model
@@ -420,11 +435,11 @@ class Connector:
         role = message.get('role', 'user')
         acknowledge = message.get('acknowledge', True)
 
-        self.coder.cur_messages += [
+        self.coder.done_messages += [
           dict(role=role, content=content)
         ]
         if role == "user" and acknowledge:
-          self.coder.cur_messages += [
+          self.coder.done_messages += [
             dict(role="assistant", content="Ok."),
           ]
         await self.send_tokens_info()
@@ -559,6 +574,10 @@ class Connector:
     if self.running_coder.reflected_message:
       current_reflection = 0
       while self.running_coder.reflected_message and not self.interrupted:
+        if current_reflection >= self.coder.max_reflections:
+          self.coder.io.tool_warning(f"Only {str(self.coder.max_reflections)} reflections allowed, stopping.")
+          break
+
         prompt = self.running_coder.reflected_message
         await self.send_log_message("loading", "Reflecting message...")
 
@@ -589,14 +608,12 @@ class Connector:
           self.running_coder.cur_messages += [dict(role="assistant", content=whole_content + " (interrupted)")]
 
         await self.send_update_context_files()
-        if current_reflection >= self.coder.max_reflections:
-          self.coder.io.tool_warning(f"Only {str(self.coder.max_reflections)} reflections allowed, stopping.")
-          break
         current_reflection += 1
 
     self.running_coder = None
     await self.send_autocompletion()
     await self.send_tokens_info()
+    await self.send_repo_map()
 
     # Send prompt-finished message if we have a prompt ID
     if prompt_id:
@@ -624,13 +641,28 @@ class Connector:
 
   async def run_command(self, command):
     if command.startswith("/map"):
-      repo_map = self.coder.get_repo_map()
+      repo_map = self.coder.repo_map.get_repo_map(set(), self.coder.get_all_abs_files()) if self.coder.repo_map else None
       await asyncio.sleep(0.1)
       if repo_map:
         await self.send_log_message("info", repo_map)
       else:
         await self.send_log_message("info", "No repo map available.")
       return
+    elif command.startswith("/reasoning-effort"):
+      parts = command.split()
+      valid_values = ['high', 'medium', 'low', 'none']
+      if len(parts) != 2 or parts[1] not in valid_values:
+        await self.send_log_message("error", "Invalid reasoning effort value. Use '/reasoning-effort [high|medium|low|none]'.")
+        return
+      if parts[1] == "none":
+        # Safely remove 'reasoning_effort' if it exists
+        if self.coder.main_model.extra_params and "extra_body" in self.coder.main_model.extra_params:
+            self.coder.main_model.extra_params["extra_body"].pop("reasoning_effort", None)
+        self.reasoning_effort = None
+        await asyncio.sleep(0.1)
+        await self.send_current_models()
+        return
+      self.reasoning_effort = parts[1]
 
     if command.startswith("/test ") or command.startswith("/run "):
       self.coder.io.running_shell_command = True
@@ -648,13 +680,19 @@ class Connector:
       await asyncio.sleep(0.1)
       await self.send_log_message("info", "The repo map has been refreshed.")
       await self.send_autocompletion()
+      await self.send_repo_map()
     elif command.startswith("/reasoning-effort"):
       await asyncio.sleep(0.1)
       await self.send_current_models()
     elif command.startswith("/think-tokens"):
+      self.coder.commands.run(command)
+      if self.coder.main_model.get_raw_thinking_tokens() == 0:
+        if self.coder.main_model.extra_params:
+          self.coder.main_model.extra_params.pop("reasoning", None)
+          self.coder.main_model.extra_params.pop("thinking", None)
+        self.thinking_tokens = None
       await asyncio.sleep(0.1)
       await self.send_current_models()
-
 
   async def send_autocompletion(self):
     try:
@@ -691,6 +729,24 @@ class Connector:
           "models": sorted(set(models.fuzzy_match_models("") + [model_settings.name for model_settings in models.MODEL_SETTINGS]))
         })
 
+  async def send_repo_map(self):
+    if self.sio and self.coder.repo_map:
+      try:
+        repo_map = self.coder.repo_map.get_repo_map(set(), self.coder.get_all_abs_files())
+        if repo_map:
+          # Remove the prefix before sending
+          prefix = self.coder.gpt_prompts.repo_content_prefix
+          if repo_map.startswith(prefix):
+              repo_map = repo_map[len(prefix):]
+
+          await self.sio.emit("message", {
+            "action": "update-repo-map",
+            "repoMap": repo_map
+          })
+      except Exception as e:
+        self.coder.io.tool_error(f"Error sending repo map: {str(e)}")
+
+
   async def send_update_context_files(self):
     if self.sio:
       inchat_files = self.coder.get_inchat_relative_files()
@@ -719,9 +775,8 @@ class Connector:
         "action": "set-models",
         "mainModel": self.coder.main_model.name,
         "weakModel": self.coder.main_model.weak_model.name,
-        "maxChatHistoryTokens": self.coder.main_model.max_chat_history_tokens,
-        "reasoningEffort": self.coder.main_model.get_reasoning_effort(),
-        "thinkingTokens": self.coder.main_model.get_thinking_tokens(),
+        "reasoningEffort": self.coder.main_model.get_reasoning_effort() if self.coder.main_model.get_reasoning_effort() is not None else self.reasoning_effort,
+        "thinkingTokens": self.coder.main_model.get_thinking_tokens() if self.coder.main_model.get_thinking_tokens() is not None else self.thinking_tokens,
         "info": info,
         "error": error
       })
@@ -816,10 +871,21 @@ def main(argv=None):
   if argv is None:
     argv = sys.argv[1:]
 
-  watch_files = "--watch-files" in argv
+  parser = argparse.ArgumentParser(description="AiderDesk Connector")
+  parser.add_argument("--watch-files", action="store_true", help="Watch files for changes")
+  parser.add_argument("--reasoning-effort", type=str, default=None, help="Set the reasoning effort for the model")
+  parser.add_argument("--thinking-tokens", type=str, default=None, help="Set the thinking tokens for the model")
+  args, _ = parser.parse_known_args(argv) # Use parse_known_args to ignore unknown args
+
   server_url = os.getenv("CONNECTOR_SERVER_URL", "http://localhost:24337")
   base_dir = os.getcwd()
-  connector = Connector(base_dir, watch_files, server_url)
+  connector = Connector(
+    base_dir,
+    watch_files=args.watch_files,
+    server_url=server_url,
+    reasoning_effort=args.reasoning_effort,
+    thinking_tokens=args.thinking_tokens
+  )
   asyncio.run(connector.start())
 
 

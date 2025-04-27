@@ -1,8 +1,8 @@
-import { Mode, ModelsData, TokensInfoData, UsageReportData } from '@common/types';
+import { Mode, TokensInfoData, UsageReportData } from '@common/types';
 
 export interface Message {
   id: string;
-  type: 'user' | 'response' | 'loading' | 'models' | 'reflected-message' | 'command-output' | 'log' | 'tokens-info' | 'tool';
+  type: 'user' | 'response' | 'loading' | 'reflected-message' | 'command-output' | 'log' | 'tokens-info' | 'tool';
   content: string;
 }
 
@@ -28,11 +28,6 @@ export interface LogMessage extends Message {
 
 export interface LoadingMessage extends Message {
   type: 'loading';
-}
-
-export interface ModelsMessage extends Message {
-  type: 'models';
-  models: ModelsData;
 }
 
 export interface CommandOutputMessage extends Message {
@@ -67,10 +62,6 @@ export const isLogMessage = (message: Message): message is LogMessage => {
 
 export const isLoadingMessage = (message: Message): message is LoadingMessage => {
   return message.type === 'loading';
-};
-
-export const isModelsMessage = (message: Message): message is ModelsMessage => {
-  return message.type === 'models';
 };
 
 export const isReflectedMessage = (message: Message): message is ReflectedMessage => {

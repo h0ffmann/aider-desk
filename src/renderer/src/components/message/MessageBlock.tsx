@@ -1,7 +1,6 @@
 import { CommandOutputMessageBlock } from './CommandOutputMessageBlock';
 import { LoadingMessageBlock } from './LoadingMessageBlock';
 import { LogMessageBlock } from './LogMessageBlock';
-import { ModelsMessageBlock } from './ModelsMessageBlock';
 import { UserMessageBlock } from './UserMessageBlock';
 import { ReflectedMessageBlock } from './ReflectedMessageBlock';
 import { ResponseMessageBlock } from './ResponseMessageBlock';
@@ -10,7 +9,6 @@ import {
   isCommandOutputMessage,
   isLogMessage,
   isLoadingMessage,
-  isModelsMessage,
   isUserMessage,
   isReflectedMessage,
   isResponseMessage,
@@ -23,9 +21,10 @@ type Props = {
   baseDir: string;
   message: Message;
   allFiles: string[];
+  renderMarkdown: boolean;
 };
 
-export const MessageBlock = ({ baseDir, message, allFiles }: Props) => {
+export const MessageBlock = ({ baseDir, message, allFiles, renderMarkdown }: Props) => {
   if (isLoadingMessage(message)) {
     return <LoadingMessageBlock message={message} />;
   }
@@ -34,12 +33,8 @@ export const MessageBlock = ({ baseDir, message, allFiles }: Props) => {
     return <LogMessageBlock message={message} />;
   }
 
-  if (isModelsMessage(message)) {
-    return <ModelsMessageBlock message={message} />;
-  }
-
   if (isReflectedMessage(message)) {
-    return <ReflectedMessageBlock baseDir={baseDir} message={message} allFiles={allFiles} />;
+    return <ReflectedMessageBlock baseDir={baseDir} message={message} allFiles={allFiles} renderMarkdown={renderMarkdown} />;
   }
 
   if (isCommandOutputMessage(message)) {
@@ -47,11 +42,11 @@ export const MessageBlock = ({ baseDir, message, allFiles }: Props) => {
   }
 
   if (isUserMessage(message)) {
-    return <UserMessageBlock baseDir={baseDir} message={message} allFiles={allFiles} />;
+    return <UserMessageBlock baseDir={baseDir} message={message} allFiles={allFiles} renderMarkdown={renderMarkdown} />;
   }
 
   if (isResponseMessage(message)) {
-    return <ResponseMessageBlock baseDir={baseDir} message={message} allFiles={allFiles} />;
+    return <ResponseMessageBlock baseDir={baseDir} message={message} allFiles={allFiles} renderMarkdown={renderMarkdown} />;
   }
 
   if (isToolMessage(message)) {
