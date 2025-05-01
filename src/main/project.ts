@@ -500,6 +500,14 @@ export class Project {
         logger.info(`Usage report: ${JSON.stringify(usageReport)}`);
         this.updateTotalCosts(usageReport);
       }
+      let commitMessage = message.commitMessage;
+      if (commitMessage && usageReport) {
+        const inputTokensK = (usageReport.sentTokens / 1000).toFixed(1);
+        const outputTokensK = (usageReport.receivedTokens / 1000).toFixed(1);
+        const cost = usageReport.messageCost.toFixed(3);
+        commitMessage += ` i${inputTokensK}k o${outputTokensK}k $${cost}`;
+      }
+
       const data: ResponseCompletedData = {
         messageId: message.id || this.currentResponseMessageId,
         content: message.content,
@@ -507,7 +515,7 @@ export class Project {
         baseDir: this.baseDir,
         editedFiles: message.editedFiles,
         commitHash: message.commitHash,
-        commitMessage: message.commitMessage,
+        commitMessage: commitMessage,
         diff: message.diff,
         usageReport,
       };
