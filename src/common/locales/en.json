@@ -154,7 +154,13 @@
     "common": {
       "showSecrets": "Show Secrets"
     },
-    "zoom": "Zoom level"
+    "zoom": "Zoom level",
+    "aiderRestartConfirm": {
+      "title": "Restart Required",
+      "message": "Changes to Aider options or environment variables require a restart of the Aider session to take effect. Would you like to restart now?",
+      "restartNow": "Restart now",
+      "later": "I'll do it later"
+    }
   },
   "messages": {
     "thinking": "Thinking...",
@@ -266,7 +272,6 @@
     "refreshRepoMap": "Refresh repository map",
     "messages": "Messages",
     "clearMessages": "Clear message history",
-    "lastMessage": "Last message",
     "agent": "Agent",
     "aider": "Aider",
     "total": "Total",
@@ -296,7 +301,8 @@
     "title": "Reflected Message"
   },
   "responseMessage": {
-    "usageReport": "{{sent}} tokens sent, {{received}} tokens received, cost: ${{cost}}"
+    "inputTokens": "Input Tokens",
+    "outputTokens": "Output Tokens"
   },
   "thinkingAnswer": {
     "thinking": "THINKING",
@@ -344,5 +350,8 @@
   },
   "projectBar": {
     "toggleMarkdown": "Markdown rendering"
+  },
+  "message": {
+    "delete": "Delete"
   }
 }

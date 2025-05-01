@@ -80,6 +80,6 @@ Current Date: ${new Date().toISOString()}
 Operating System: ${(await import('os-name')).default()}
 Current Working Directory: ${projectDir}
 
-${customInstructions ? `## Custom User Instructions\n\n${customInstructions}` : ''}
+${customInstructions ? `# Additional Instructions\n\n${customInstructions}` : ''}
 
 `.trim();

@@ -4,6 +4,7 @@ import { unlinkSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 
+import { simpleGit } from 'simple-git';
 import {
   ContextFile,
   Mode,
@@ -37,6 +38,8 @@ import logger from './logger';
 import { MessageAction, ResponseMessage } from './messages';
 import { DEFAULT_MAIN_MODEL, Store } from './store';
 
+import type { SimpleGit } from 'simple-git';
+
 export class Project {
   private process: ChildProcessWithoutNullStreams | null = null;
   private connectors: Connector[] = [];
@@ -57,13 +60,16 @@ export class Project {
 
   mcpAgentTotalCost: number = 0;
   aiderTotalCost: number = 0;
+  public readonly git: SimpleGit;
 
   constructor(
     private readonly mainWindow: BrowserWindow,
     public readonly baseDir: string,
     private readonly store: Store,
     private readonly agent: Agent,
-  ) {}
+  ) {
+    this.git = simpleGit(this.baseDir);
+  }
 
   public async start() {
     const settings = this.store.getSettings();
@@ -115,7 +121,7 @@ export class Project {
       this.sessionManager.getContextFiles().forEach(connector.sendAddFileMessage);
     }
     if (connector.listenTo.includes('add-message')) {
-      this.sessionManager.filterUserAndAssistantMessages().forEach((message) => {
+      this.sessionManager.toConnectorMessages().forEach((message) => {
         connector.sendAddMessageMessage(message.role, message.content, false);
       });
     }
@@ -289,6 +295,7 @@ export class Project {
 
   public async close() {
     logger.info('Closing project...', { baseDir: this.baseDir });
+    this.mainWindow.webContents.send('clear-project', this.baseDir, true, true);
     await this.killAider();
   }
 
@@ -306,7 +313,7 @@ export class Project {
       return;
     }
 
-    await this.sessionManager.loadMessages(session);
+    await this.sessionManager.loadMessages(session.contextMessages || []);
   }
 
   public async loadSessionFiles(name: string) {
@@ -315,7 +322,7 @@ export class Project {
       return;
     }
 
-    await this.sessionManager.loadFiles(session);
+    await this.sessionManager.loadFiles(session.contextFiles || []);
   }
 
   public async deleteSession(name: string): Promise<void> {
@@ -399,7 +406,7 @@ export class Project {
         agentMessages.forEach((message) => this.sessionManager.addContextMessage(message));
 
         // send messages to connectors (aider)
-        this.sessionManager.filterUserAndAssistantMessages(agentMessages).forEach((message) => {
+        this.sessionManager.toConnectorMessages(agentMessages).forEach((message) => {
           this.sendAddMessage(message.role, message.content, false);
         });
       }
@@ -504,7 +511,8 @@ export class Project {
         diff: message.diff,
         usageReport,
       };
-      this.mainWindow.webContents.send('response-completed', data);
+
+      this.addResponseCompletedMessage(data);
       this.currentResponseMessageId = null;
       this.closeCommandOutput();
 
@@ -513,6 +521,10 @@ export class Project {
     }
 
     return this.currentResponseMessageId;
+  }
+
+  addResponseCompletedMessage(data: ResponseCompletedData) {
+    this.mainWindow.webContents.send('response-completed', data);
   }
 
   private getQuestionKey(question: QuestionData): string {
@@ -555,15 +567,16 @@ export class Project {
     return false;
   }
 
-  public async addFile(contextFile: ContextFile): Promise<void> {
+  public async addFile(contextFile: ContextFile) {
     logger.info('Adding file or folder:', {
       path: contextFile.path,
       readOnly: contextFile.readOnly,
     });
     if (!(await this.sessionManager.addContextFile(contextFile))) {
-      return;
+      return false;
     }
     this.sendAddFile(contextFile);
+    return true;
   }
 
   public sendAddFile(contextFile: ContextFile) {
@@ -833,7 +846,7 @@ export class Project {
   public clearContext(addToHistory = false) {
     this.sessionManager.clearMessages();
     this.runCommand('clear', addToHistory);
-    this.mainWindow.webContents.send('clear-messages', this.baseDir);
+    this.mainWindow.webContents.send('clear-project', this.baseDir, true, false);
   }
 
   public interruptResponse() {
@@ -898,6 +911,10 @@ export class Project {
     };
 
     this.mainWindow.webContents.send('user-message', data);
+  }
+
+  public removeLastMessage(): void {
+    this.sessionManager.removeLastMessage();
   }
 
   public addContextMessage(role: MessageRole, content: string) {

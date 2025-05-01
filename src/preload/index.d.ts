@@ -62,6 +62,7 @@ export interface ApplicationAPI {
   interruptResponse: (baseDir: string) => void;
   applyEdits: (baseDir: string, edits: FileEdit[]) => void;
   clearContext: (baseDir: string) => void;
+  removeLastMessage: (baseDir: string) => void;
   setZoomLevel: (level: number) => Promise<void>;
 
   addResponseChunkListener: (baseDir: string, callback: (event: Electron.IpcRendererEvent, data: ResponseChunkData) => void) => string;
@@ -103,8 +104,8 @@ export interface ApplicationAPI {
   addInputHistoryUpdatedListener: (baseDir: string, callback: (event: Electron.IpcRendererEvent, data: InputHistoryData) => void) => string;
   removeInputHistoryUpdatedListener: (listenerId: string) => void;
 
-  addClearMessagesListener: (baseDir: string, callback: (event: Electron.IpcRendererEvent, baseDir: string) => void) => string;
-  removeClearMessagesListener: (listenerId: string) => void;
+  addClearProjectListener: (baseDir: string, callback: (event: Electron.IpcRendererEvent, clearMessages: boolean, clearSession: boolean) => void) => string;
+  removeClearProjectListener: (listenerId: string) => void;
 }
 
 declare global {

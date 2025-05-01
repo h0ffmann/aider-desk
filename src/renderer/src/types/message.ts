@@ -19,6 +19,7 @@ export interface ResponseMessage extends Message {
 
 export interface ReflectedMessage extends Message {
   type: 'reflected-message';
+  responseMessageId: string;
 }
 
 export interface LogMessage extends Message {
@@ -46,6 +47,7 @@ export interface ToolMessage extends Message {
   toolName: string;
   args: Record<string, unknown>;
   content: string; // Empty while executing, contains result when complete
+  usageReport?: UsageReportData;
 }
 
 export const isUserMessage = (message: Message): message is UserMessage => {

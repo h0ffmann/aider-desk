@@ -1,6 +1,6 @@
 {
   "name": "aider-desk",
-  "version": "0.10.1-dev",
+  "version": "0.11.2-dev",
   "description": "Aider desktop application wrapper",
   "main": "./out/main/index.js",
   "author": "Hotovo",
@@ -84,6 +84,7 @@
     "react-use": "^17.5.1",
     "rehype-autolink-headings": "^7.1.0",
     "rehype-slug": "^6.0.0",
+    "simple-git": "^3.27.0",
     "socket.io": "^4.8.1",
     "textarea-caret": "^3.1.0",
     "tree-kill": "^1.2.2",

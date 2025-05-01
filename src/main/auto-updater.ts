@@ -45,6 +45,10 @@ export const setupAutoUpdater = (): void => {
   });
 
   autoUpdater.on('error', (error) => {
+    if (error.message === 'No published versions on GitHub') {
+      // No need to show error box if there are no published versions
+      return;
+    }
     logger.error('There was a problem updating the application', {
       error: error.message,
     });
@@ -53,5 +57,9 @@ export const setupAutoUpdater = (): void => {
 };
 
 export const checkForUpdates = async (): Promise<void> => {
-  await autoUpdater.checkForUpdatesAndNotify();
+  try {
+    await autoUpdater.checkForUpdatesAndNotify();
+  } catch {
+    logger.error('There was a problem checking for updates.');
+  }
 };

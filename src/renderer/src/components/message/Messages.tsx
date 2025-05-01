@@ -4,6 +4,7 @@ import { toPng } from 'html-to-image';
 import { MessageBlock } from './MessageBlock';
 
 import { Message } from '@/types/message';
+import { StyledTooltip } from '@/components/common/StyledTooltip';
 
 export type MessagesRef = {
   exportToImage: () => void;
@@ -14,9 +15,10 @@ type Props = {
   messages: Message[];
   allFiles?: string[];
   renderMarkdown: boolean;
+  removeMessage: (message: Message) => void;
 };
 
-export const Messages = forwardRef<MessagesRef, Props>(({ baseDir, messages, allFiles = [], renderMarkdown }, ref) => {
+export const Messages = forwardRef<MessagesRef, Props>(({ baseDir, messages, allFiles = [], renderMarkdown, removeMessage }, ref) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [scrollingPaused, setScrollingPaused] = useState(false);
@@ -69,8 +71,17 @@ export const Messages = forwardRef<MessagesRef, Props>(({ baseDir, messages, all
       hover:scrollbar-thumb-neutral-600"
       onWheel={handleScroll}
     >
+      <StyledTooltip id="usage-info-tooltip" />
       {messages.map((message, index) => (
-        <MessageBlock key={index} baseDir={baseDir} message={message} allFiles={allFiles} renderMarkdown={renderMarkdown} />
+        <MessageBlock
+          key={index}
+          baseDir={baseDir}
+          message={message}
+          allFiles={allFiles}
+          renderMarkdown={renderMarkdown}
+          removeMessage={() => removeMessage(message)}
+          isLastMessage={index === messages.length - 1}
+        />
       ))}
       <div ref={messagesEndRef} />
     </div>

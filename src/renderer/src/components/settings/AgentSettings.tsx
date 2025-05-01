@@ -145,10 +145,10 @@ export const AgentSettings = ({ settings, setSettings }: Props) => {
     setSettings({ ...settings, agentConfig: updatedMcpConfig });
   };
 
-  const handleCustomInstructionsChanged = (newSystemPrompt: string) => {
+  const handleCustomInstructionsChanged = (customInstructions: string) => {
     const updatedMcpConfig = {
       ...settings.agentConfig,
-      systemPrompt: newSystemPrompt,
+      customInstructions,
     };
     setSettings({ ...settings, agentConfig: updatedMcpConfig });
   };

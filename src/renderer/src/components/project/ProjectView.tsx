@@ -24,9 +24,13 @@ import {
   CommandOutputMessage,
   isCommandOutputMessage,
   isLoadingMessage,
+  isResponseMessage,
+  isToolMessage,
+  isUserMessage,
   LoadingMessage,
   LogMessage,
   Message,
+  ReflectedMessage,
   ResponseMessage,
   ToolMessage,
   UserMessage,
@@ -59,7 +63,6 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
   const [inputHistory, setInputHistory] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [aiderTotalCost, setAiderTotalCost] = useState(0);
-  const [lastMessageCost, setLastMessageCost] = useState<undefined | number>(undefined);
   const [agentTotalCost, setAgentTotalCost] = useState(0);
   const [tokensInfo, setTokensInfo] = useState<TokensInfoData | null>(null);
   const [question, setQuestion] = useState<QuestionData | null>(null);
@@ -110,11 +113,14 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
         const newMessages: Message[] = [];
 
         if (reflectedMessage) {
-          newMessages.push({
+          const reflected: ReflectedMessage = {
             id: uuidv4(),
             type: 'reflected-message',
             content: reflectedMessage,
-          });
+            responseMessageId: messageId,
+          };
+
+          newMessages.push(reflected);
         }
 
         const newResponseMessage: ResponseMessage = {
@@ -133,7 +139,7 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
       }
     };
 
-    const handleResponseCompleted = (_: IpcRendererEvent, { messageId, usageReport, content }: ResponseCompletedData) => {
+    const handleResponseCompleted = (_: IpcRendererEvent, { messageId, usageReport, content, reflectedMessage }: ResponseCompletedData) => {
       const processingMessage = processingMessageRef.current;
 
       if (content) {
@@ -146,6 +152,16 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
             responseMessage.usageReport = usageReport;
             return prevMessages.map((message) => (message.id === messageId ? responseMessage : message));
           } else {
+            if (reflectedMessage) {
+              const reflected: ReflectedMessage = {
+                id: uuidv4(),
+                type: 'reflected-message',
+                content: reflectedMessage,
+                responseMessageId: messageId,
+              };
+              return prevMessages.filter((message) => !isLoadingMessage(message)).concat(reflected);
+            }
+
             // If no response message exists, create a new one
             const newResponseMessage: ResponseMessage = {
               id: messageId,
@@ -167,7 +183,6 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
       }
 
       if (usageReport) {
-        setLastMessageCost(usageReport.messageCost);
         if (usageReport.aiderTotalCost !== undefined) {
           setAiderTotalCost(usageReport.aiderTotalCost);
         }
@@ -321,8 +336,12 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
       });
     };
 
-    const handleClearMessages = () => {
-      clearMessages(false);
+    const handleClearProject = (_: IpcRendererEvent, messages: boolean, session: boolean) => {
+      if (session) {
+        clearSession();
+      } else if (messages) {
+        clearMessages(false);
+      }
     };
 
     const autocompletionListenerId = window.api.addUpdateAutocompletionListener(project.baseDir, handleUpdateAutocompletion);
@@ -336,7 +355,7 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
     const toolListenerId = window.api.addToolListener(project.baseDir, handleTool);
     const inputHistoryListenerId = window.api.addInputHistoryUpdatedListener(project.baseDir, handleInputHistoryUpdate);
     const userMessageListenerId = window.api.addUserMessageListener(project.baseDir, handleUserMessage);
-    const clearMessagesListenerId = window.api.addClearMessagesListener(project.baseDir, handleClearMessages);
+    const clearProjectListenerId = window.api.addClearProjectListener(project.baseDir, handleClearProject);
 
     return () => {
       window.api.removeUpdateAutocompletionListener(autocompletionListenerId);
@@ -350,7 +369,7 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
       window.api.removeToolListener(toolListenerId);
       window.api.removeInputHistoryUpdatedListener(inputHistoryListenerId);
       window.api.removeUserMessageListener(userMessageListenerId);
-      window.api.removeClearMessagesListener(clearMessagesListenerId);
+      window.api.removeClearProjectListener(clearProjectListenerId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.baseDir]);
@@ -365,6 +384,19 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
     setAddFileDialogOptions({
       readOnly,
     });
+  };
+
+  const clearSession = () => {
+    setShowFrozenDialog(false);
+    setLoading(true);
+    setMessages([]);
+    setAiderTotalCost(0);
+    setAgentTotalCost(0);
+    setProcessing(false);
+    setTokensInfo(null);
+    setQuestion(null);
+    setModelsData(null);
+    processingMessageRef.current = null;
   };
 
   const clearMessages = (clearContext = true) => {
@@ -478,22 +510,22 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
   };
 
   const restartProject = () => {
-    setShowFrozenDialog(false);
-    setLoading(true);
-    setMessages([]);
-    setLastMessageCost(0);
-    setAiderTotalCost(0);
-    setAgentTotalCost(0);
-    setProcessing(false);
-    setTokensInfo(null);
-    setQuestion(null);
-    setModelsData(null);
-    processingMessageRef.current = null;
     void window.api.restartProject(project.baseDir);
+    clearSession();
   };
 
   const exportMessagesToImage = () => {
     messagesRef.current?.exportToImage();
+  };
+
+  const handleRemoveMessage = (messageToRemove: Message) => {
+    const isLastMessage = messages[messages.length - 1] === messageToRemove;
+
+    if (isLastMessage && (isToolMessage(messageToRemove) || isUserMessage(messageToRemove) || isResponseMessage(messageToRemove))) {
+      window.api.removeLastMessage(project.baseDir);
+    }
+
+    setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageToRemove.id));
   };
 
   return (
@@ -520,7 +552,14 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
           />
         </div>
         <div className="flex-grow overflow-y-auto">
-          <Messages ref={messagesRef} baseDir={project.baseDir} messages={messages} allFiles={autocompletionData?.allFiles} renderMarkdown={renderMarkdown} />
+          <Messages
+            ref={messagesRef}
+            baseDir={project.baseDir}
+            messages={messages}
+            allFiles={autocompletionData?.allFiles}
+            renderMarkdown={renderMarkdown}
+            removeMessage={handleRemoveMessage}
+          />
         </div>
         <div className="relative bottom-0 w-full p-4 pb-2 flex-shrink-0 flex border-t border-neutral-800">
           <PromptField
@@ -570,7 +609,6 @@ export const ProjectView = ({ project, isActive = false }: Props) => {
           <CostInfo
             tokensInfo={tokensInfo}
             aiderTotalCost={aiderTotalCost}
-            lastMessageCost={lastMessageCost}
             agentTotalCost={agentTotalCost}
             clearMessages={clearMessages}
             refreshRepoMap={() => runCommand('map-refresh')}

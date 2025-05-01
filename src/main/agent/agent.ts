@@ -25,8 +25,13 @@ export class Agent {
   private initializedForProject: Project | null = null;
   private clients: ClientHolder[] = [];
   private abortController: AbortController | null = null;
+  private aiderEnv: Record<string, string> | null = null;
 
   constructor(private readonly store: Store) {}
+
+  invalidateAiderEnv() {
+    this.aiderEnv = null;
+  }
 
   async initMcpServers(project: Project | null = this.initializedForProject, initId = uuidv4()) {
     // Set the current init ID to track this specific initialization process
@@ -336,11 +341,9 @@ export class Agent {
     });
 
     try {
-      // Parse Aider environment variables
-      const env = parse(this.store.getSettings().aider.environmentVariables);
       const model = createLlm(activeProvider, {
         ...process.env,
-        ...env,
+        ...(await this.getAiderEnv()),
       });
       const systemPrompt = await getSystemPrompt(project.baseDir, agentConfig.useAiderTools, agentConfig.includeContextFiles, agentConfig.customInstructions);
 
@@ -517,6 +520,37 @@ export class Agent {
     }
 
     return agentMessages;
+  }
+
+  private async getAiderEnv(): Promise<Record<string, string>> {
+    if (!this.aiderEnv) {
+      // Parse Aider environment variables from settings
+      const aiderEnvVars = parse(this.store.getSettings().aider.environmentVariables);
+      const aiderOptions = this.store.getSettings().aider.options;
+      let fileEnv: Record<string, string> | null = null;
+
+      // Check for --env or --env-file in aider options
+      const envFileMatch = aiderOptions.match(/--(?:env|env-file)\s+([^\s]+)/);
+      if (envFileMatch && envFileMatch[1]) {
+        const envFilePath = envFileMatch[1];
+        try {
+          const fileContent = await fs.readFile(envFilePath, 'utf8');
+          fileEnv = parse(fileContent);
+          logger.debug(`Loaded environment variables from Aider env file: ${envFilePath}`);
+        } catch (error) {
+          logger.error(`Failed to read or parse Aider env file: ${envFilePath}`, error);
+          // Setting aiderEnv to null indicates an error state, preventing LLM creation with potentially incorrect env
+          this.aiderEnv = null;
+        }
+      }
+
+      this.aiderEnv = {
+        ...aiderEnvVars, // Start with settings env
+        ...(fileEnv ?? {}), // Override with file env if it exists
+      };
+    }
+
+    return this.aiderEnv;
   }
 
   private async prepareMessages(project: Project): Promise<CoreMessage[]> {

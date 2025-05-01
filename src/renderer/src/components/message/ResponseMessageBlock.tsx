@@ -1,7 +1,7 @@
-import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
+import { RiRobot2Line } from 'react-icons/ri';
 
-import { CopyMessageButton } from './CopyMessageButton';
+import { MessageBar } from './MessageBar';
 import { parseMessageContent } from './utils';
 
 import { ResponseMessage } from '@/types/message';
@@ -11,10 +11,10 @@ type Props = {
   message: ResponseMessage;
   allFiles: string[];
   renderMarkdown: boolean;
+  onRemove?: () => void;
 };
 
-export const ResponseMessageBlock = ({ baseDir, message, allFiles, renderMarkdown }: Props) => {
-  const { t } = useTranslation();
+export const ResponseMessageBlock = ({ baseDir, message, allFiles, renderMarkdown, onRemove }: Props) => {
   const baseClasses = 'rounded-md p-3 mb-2 max-w-full text-xs bg-neutral-850 border border-neutral-800 text-gray-100';
 
   if (!message.content) {
@@ -23,26 +23,13 @@ export const ResponseMessageBlock = ({ baseDir, message, allFiles, renderMarkdow
 
   return (
     <div className={clsx(baseClasses, 'relative flex flex-col group', !renderMarkdown && 'break-words whitespace-pre-wrap')}>
-      <div className="flex-1 max-w-full">{parseMessageContent(baseDir, message.content, allFiles, renderMarkdown)}</div>
-      <div className="absolute top-2 right-2 flex items-center gap-2">
-        <CopyMessageButton content={message.content} className="text-neutral-600 hover:text-neutral-300" />
-      </div>
-      {message.usageReport && (
-        <div
-          className="absolute bottom-2 right-2 flex items-center gap-2
-          opacity-0 group-hover:opacity-100
-          transition-opacity duration-300 ease-in-out px-2 py-1 rounded-md
-          bg-neutral-900 border border-neutral-700"
-        >
-          <span className="text-xs text-neutral-300 hover:text-neutral-100">
-            {t('responseMessage.usageReport', {
-              sent: message.usageReport.sentTokens,
-              received: message.usageReport.receivedTokens,
-              cost: message.usageReport.messageCost.toFixed(5),
-            })}
-          </span>
+      <div className="flex items-start gap-2">
+        <div className="mt-[1px]">
+          <RiRobot2Line className="text-neutral-500 w-4 h-4" />
         </div>
-      )}
+        <div className="flex-grow-1 w-full overflow-hidden">{parseMessageContent(baseDir, message.content, allFiles, renderMarkdown)}</div>
+      </div>
+      <MessageBar content={message.content} usageReport={message.usageReport} removeMessage={onRemove} />
     </div>
   );
 };

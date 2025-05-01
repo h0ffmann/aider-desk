@@ -149,7 +149,7 @@ export interface SettingsData {
   onboardingFinished?: boolean;
   language: string;
   startupMode?: StartupMode;
-  zoomLevel?: number; // Added zoom level setting
+  zoomLevel?: number;
   aider: {
     options: string;
     environmentVariables: string;

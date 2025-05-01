@@ -17,6 +17,7 @@ export const SettingsDialog = ({ onClose, initialTab = 0 }: Props) => {
 
   const { settings: originalSettings, saveSettings } = useSettings();
   const [localSettings, setLocalSettings] = useState<SettingsData | null>(null);
+  const [showRestartConfirmDialog, setShowRestartConfirmDialog] = useState(false);
 
   useEffect(() => {
     if (originalSettings) {
@@ -42,9 +43,31 @@ export const SettingsDialog = ({ onClose, initialTab = 0 }: Props) => {
 
   const handleSave = async () => {
     if (localSettings) {
+      const aiderOptionsChanged = localSettings.aider.options !== originalSettings?.aider.options;
+      const aiderEnvVarsChanged = localSettings.aider.environmentVariables !== originalSettings?.aider.environmentVariables;
+
       await saveSettings(localSettings);
-      onClose();
+
+      if (aiderOptionsChanged || aiderEnvVarsChanged) {
+        setShowRestartConfirmDialog(true);
+      } else {
+        onClose();
+      }
     }
+  };
+
+  const handleConfirmRestart = async () => {
+    const openProjects = await window.api.getOpenProjects();
+    openProjects.forEach((project) => {
+      window.api.restartProject(project.baseDir);
+    });
+    setShowRestartConfirmDialog(false);
+    onClose();
+  };
+
+  const handleCancelRestart = async () => {
+    setShowRestartConfirmDialog(false);
+    onClose();
   };
 
   const handleLanguageChange = (language: string) => {
@@ -67,6 +90,22 @@ export const SettingsDialog = ({ onClose, initialTab = 0 }: Props) => {
       void window.api.setZoomLevel(zoomLevel);
     }
   };
+
+  if (showRestartConfirmDialog) {
+    return (
+      <ConfirmDialog
+        title={t('settings.aiderRestartConfirm.title')}
+        onConfirm={handleConfirmRestart}
+        onCancel={handleCancelRestart}
+        confirmButtonText={t('settings.aiderRestartConfirm.restartNow')}
+        cancelButtonText={t('settings.aiderRestartConfirm.later')}
+        width={600}
+        closeOnEscape
+      >
+        <span className="text-sm">{t('settings.aiderRestartConfirm.message')}</span>
+      </ConfirmDialog>
+    );
+  }
 
   return (
     <ConfirmDialog

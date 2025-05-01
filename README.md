@@ -1,6 +1,6 @@
 # ✨ AiderDesk: AI-Powered Coding
 
-**Elevate your development workflow with AiderDesk**, a sophisticated desktop application bringing all the power of [aider](https://aider.chat) into a user-friendly graphical interface. Whether you're managing multiple projects, integrating with your favorite IDE, or tracking costs, AiderDesk elevates your productivity to new heights. Whether you're managing multiple projects, integrating with your favorite IDE, or tracking costs, AiderDesk elevates your productivity to new heights.
+**Elevate your development workflow with AiderDesk**, a sophisticated desktop application bringing all the power of [aider](https://aider.chat) into a user-friendly graphical interface. Whether you're managing multiple projects, integrating with your favorite IDE, or tracking costs, AiderDesk elevates your productivity to new heights.
 
 ## 🎬 Overview
 
@@ -88,7 +88,7 @@ Connect AiderDesk to [Model Context Protocol](https://github.com/model-context-p
 
 - **Access External Tools**: Grant the agent capabilities beyond built-in functions.
 - **Gather Richer Context**: Enable the agent to fetch external information before instructing Aider.
-- **Flexible Configuration**: Manage MCP servers and individual tools within Agent settings. (See [MCP Configuration GIF](docs/images/mcp-servers.gif))
+- **Flexible Configuration**: Manage MCP servers and individual tools within Agent settings.
 
 AiderDesk is compatible with any MCP server, allowing you to tailor the agent's toolset precisely to your needs.
 

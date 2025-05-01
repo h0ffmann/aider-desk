@@ -151,7 +151,13 @@
     "common": {
       "showSecrets": "显示密钥"
     },
-    "zoom": "缩放级别"
+    "zoom": "缩放级别",
+    "aiderRestartConfirm": {
+      "title": "需要重启",
+      "message": "对 Aider 选项或环境变量的更改需要重新启动 Aider 会话才能生效。您想现在重新启动吗？",
+      "restartNow": "立即重启",
+      "later": "稍后处理"
+    }
   },
   "messages": {
     "thinking": "思考中...",
@@ -263,7 +269,6 @@
     "refreshRepoMap": "刷新仓库地图",
     "messages": "消息",
     "clearMessages": "清除消息历史",
-    "lastMessage": "最后消息",
     "agent": "代理",
     "aider": "Aider",
     "total": "全部的",
@@ -293,7 +298,8 @@
     "title": "反射消息"
   },
   "responseMessage": {
-    "usageReport": "发送{{sent}}个令牌，接收{{received}}个令牌，成本: ${{cost}}"
+    "inputTokens": "输入令牌",
+    "outputTokens": "输出令牌"
   },
   "thinkingAnswer": {
     "thinking": "思考中",
@@ -341,5 +347,8 @@
   },
   "projectBar": {
     "toggleMarkdown": "Markdown 渲染"
+  },
+  "message": {
+    "delete": "删除"
   }
 }

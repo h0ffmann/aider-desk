@@ -2,6 +2,17 @@
 
 ## [UNRELEASED]
 
+- correct placement of --init flag for Docker MCP server execution
+
+## [0.11.1]
+
+- using Aider's --env and --env-file options for Agent LLM providers
+- added confirmation dialog for Aider restart after settings changes
+- improved Agent internal Aider tool description and fixed flow with adding new file to context
+- fixed editing of custom instructions for Agent settings
+
+## [0.11.0]
+
 - fixed issue with docker MCP server not closing properly
 - closing session popup when clicking on the button again
 - added zoom level setting
@@ -12,6 +23,8 @@
 - removed mode locking functionality - mode is now always 'locked'
 - commands are now stored in input history
 - added Markdown rendering support for messages
+- added bottom bar to message with additional info and actions
+- added ability to remove last message from the context
 
 ## [0.10.0]
 

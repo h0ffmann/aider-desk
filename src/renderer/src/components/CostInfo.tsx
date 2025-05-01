@@ -8,7 +8,6 @@ import { StyledTooltip } from './common/StyledTooltip';
 
 type Props = {
   tokensInfo?: TokensInfoData | null;
-  lastMessageCost?: number;
   aiderTotalCost: number;
   agentTotalCost: number;
   clearMessages?: () => void;
@@ -16,7 +15,7 @@ type Props = {
   restartProject?: () => void;
 };
 
-export const CostInfo = ({ tokensInfo, lastMessageCost, aiderTotalCost, agentTotalCost, clearMessages, refreshRepoMap, restartProject }: Props) => {
+export const CostInfo = ({ tokensInfo, aiderTotalCost, agentTotalCost, clearMessages, refreshRepoMap, restartProject }: Props) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [refreshingAnimation, setRefreshingAnimation] = useState(false);
@@ -87,7 +86,6 @@ export const CostInfo = ({ tokensInfo, lastMessageCost, aiderTotalCost, agentTot
             </div>
           )}
         </div>
-        {lastMessageCost !== undefined && renderLabelValue('costInfo.lastMessage', `$${(lastMessageCost ?? 0).toFixed(5)}`, t)}
         {agentTotalCost ? (
           <>
             {renderLabelValue('costInfo.agent', `$${agentTotalCost.toFixed(5)}`, t)}
