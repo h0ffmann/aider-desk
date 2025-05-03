@@ -8,34 +8,51 @@ import { migrateSettingsV0toV1 } from './migrations/v0-to-v1';
 import { migrateSettingsV1toV2 } from './migrations/v1-to-v2';
 import { migrateSettingsV2toV3 } from './migrations/v2-to-v3';
 
-export const DEFAULT_MAIN_MODEL = 'claude-3-7-sonnet-20250219';
+export const DEFAULT_MAIN_MODEL = 'deepseek/deepseek-chat';
 
 export const DEFAULT_SETTINGS: SettingsData = {
   language: 'en',
   startupMode: StartupMode.Empty,
+  zoomLevel: 1,
   aider: {
     options: '',
     environmentVariables: '',
   },
   models: {
-    preferred: ['claude-3-7-sonnet-20250219', 'gpt-4o', 'deepseek/deepseek-coder', 'claude-3-5-haiku-20241022'],
+    preferred: ['deepseek/deepseek-chat', 'gpt-4o', 'deepseek/deepseek-coder', 'claude-3-7-sonnet-20250219'],
   },
   agentConfig: {
     providers: [
       {
         name: 'anthropic',
         apiKey: '',
-        model: Object.keys(PROVIDER_MODELS.anthropic.models)[0],
+        model: Object.keys(PROVIDER_MODELS.deepseek.models)[0],
         active: true,
       },
     ],
     maxIterations: 10,
     maxTokens: 1000,
     minTimeBetweenToolCalls: 0,
-    mcpServers: {},
+    mcpServers: {
+      'python-agent': {
+        command: 'python',
+        args: ['-m', 'mcp_agent'],
+        env: {
+          MCP_PORT: '50051'
+        }
+      },
+      'node-agent': {
+        command: 'node',
+        args: ['./mcp-server.js'],
+        env: {
+          PORT: '50052'
+        }
+      }
+    },
     disabledServers: [],
-    disabledTools: [],
+    toolApprovals: {},
     includeContextFiles: false,
+    includeRepoMap: false,
     useAiderTools: true,
     customInstructions: '',
   },
@@ -43,6 +60,8 @@ export const DEFAULT_SETTINGS: SettingsData = {
 
 export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
   mainModel: DEFAULT_MAIN_MODEL,
+  currentMode: 'code',
+  renderMarkdown: false,
 };
 
 const compareBaseDirs = (baseDir1: string, baseDir2: string): boolean => {
@@ -71,6 +90,18 @@ export class Store {
   async init(): Promise<void> {
     const ElectronStore = (await import('electron-store')).default;
     this.store = new ElectronStore<StoreSchema>() as unknown as CustomStore<StoreSchema>;
+
+    // Ensure default MCP servers are preserved
+    const currentSettings = this.store.get('settings') || {};
+    if (!currentSettings.agentConfig?.mcpServers) {
+      this.store.set('settings', {
+        ...currentSettings,
+        agentConfig: {
+          ...currentSettings.agentConfig,
+          mcpServers: DEFAULT_SETTINGS.agentConfig.mcpServers
+        }
+      });
+    }
   }
 
   getSettings(): SettingsData {
@@ -177,7 +208,7 @@ export class Store {
     };
   }
 
-  saveProjectSettings(baseDir: string, settings: ProjectSettings): void {
+  saveProjectSettings(baseDir: string, settings: ProjectSettings): ProjectSettings {
     const projects = this.getOpenProjects();
 
     logger.info('Projects', {
@@ -195,11 +226,14 @@ export class Store {
         baseDir,
         settings,
       });
+      return settings;
     } else {
       logger.warn(`No project found for baseDir: ${baseDir}`, {
         baseDir,
         settings,
       });
+
+      return settings;
     }
   }
 

@@ -40,7 +40,7 @@ export interface ApplicationAPI {
   updateWeakModel: (baseDir: string, model: string) => void;
   updateArchitectModel: (baseDir: string, model: string) => void;
   getProjectSettings: (baseDir: string) => Promise<ProjectSettings>;
-  saveProjectSettings: (baseDir: string, settings: ProjectSettings) => Promise<void>;
+  patchProjectSettings: (baseDir: string, settings: Partial<ProjectSettings>) => Promise<ProjectSettings>;
   getFilePathSuggestions: (currentPath: string, directoriesOnly?: boolean) => Promise<string[]>;
   getAddableFiles: (baseDir: string) => Promise<string[]>;
   addFile: (baseDir: string, filePath: string, readOnly?: boolean) => void;
@@ -55,12 +55,15 @@ export interface ApplicationAPI {
   loadSessionMessages: (baseDir: string, name: string) => Promise<void>;
   loadSessionFiles: (baseDir: string, name: string) => Promise<void>;
   listSessions: (baseDir: string) => Promise<SessionData[]>;
+  exportSessionToMarkdown: (baseDir: string) => Promise<void>;
   getRecentProjects: () => Promise<string[]>;
   addRecentProject: (baseDir: string) => Promise<void>;
   removeRecentProject: (baseDir: string) => Promise<void>;
   interruptResponse: (baseDir: string) => void;
   applyEdits: (baseDir: string, edits: FileEdit[]) => void;
   clearContext: (baseDir: string) => void;
+  removeLastMessage: (baseDir: string) => void;
+  setZoomLevel: (level: number) => Promise<void>;
 
   addResponseChunkListener: (baseDir: string, callback: (event: Electron.IpcRendererEvent, data: ResponseChunkData) => void) => string;
   removeResponseChunkListener: (listenerId: string) => void;
@@ -101,8 +104,8 @@ export interface ApplicationAPI {
   addInputHistoryUpdatedListener: (baseDir: string, callback: (event: Electron.IpcRendererEvent, data: InputHistoryData) => void) => string;
   removeInputHistoryUpdatedListener: (listenerId: string) => void;
 
-  addClearMessagesListener: (baseDir: string, callback: (event: Electron.IpcRendererEvent, baseDir: string) => void) => string;
-  removeClearMessagesListener: (listenerId: string) => void;
+  addClearProjectListener: (baseDir: string, callback: (event: Electron.IpcRendererEvent, clearMessages: boolean, clearSession: boolean) => void) => string;
+  removeClearProjectListener: (listenerId: string) => void;
 }
 
 declare global {

@@ -1,17 +1,27 @@
 import { useEffect, RefObject } from 'react';
 
-export const useClickOutside = (ref: RefObject<HTMLDivElement>, handler: () => void) => {
+type RefType = RefObject<HTMLElement | null>;
+
+export const useClickOutside = (refs: RefType | RefType[], handler: (event: MouseEvent) => void) => {
   useEffect(() => {
     const listener = (event: MouseEvent) => {
-      if (!ref.current || ref.current.contains(event.target as Node)) {
-        return;
+      const target = event.target as Node;
+      const refsArray = Array.isArray(refs) ? refs : [refs];
+
+      // Check if the click is outside all provided refs
+      const isOutside = refsArray.every((ref) => {
+        // Ignore clicks on null refs or if the ref doesn't contain the target
+        return !ref.current || !ref.current.contains(target);
+      });
+
+      if (isOutside) {
+        handler(event);
       }
-      handler();
     };
 
     document.addEventListener('mousedown', listener);
     return () => {
       document.removeEventListener('mousedown', listener);
     };
-  }, [ref, handler]);
+  }, [refs, handler]);
 };

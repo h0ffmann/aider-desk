@@ -300,6 +300,12 @@ export const performStartUp = async (updateProgress: UpdateProgressFunction): Pr
     fs.writeFileSync(SETUP_COMPLETE_FILENAME, new Date().toISOString());
 
     logger.info('AiderDesk setup completed successfully');
+    
+    // Initialize store and agent after setup completes
+    const store = new Store();
+    await store.init();
+    const agent = new Agent(store);
+    
     return true;
   } catch (error) {
     logger.error('AiderDesk setup failed', { error });

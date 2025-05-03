@@ -84,6 +84,7 @@ export const BedrockParameters = ({ settings, setSettings }: Props) => {
         }
         value={accessKeyId}
         onChange={handleAccessKeyIdChange}
+        placeholder={t('settings.agent.envVarPlaceholder', { envVar: 'AWS_ACCESS_KEY_ID' })}
       />
       <Input
         label={
@@ -95,6 +96,7 @@ export const BedrockParameters = ({ settings, setSettings }: Props) => {
         type="password"
         value={secretAccessKey}
         onChange={handleSecretAccessKeyChange}
+        placeholder={t('settings.agent.envVarPlaceholder', { envVar: 'AWS_SECRET_ACCESS_KEY' })}
       />
     </div>
   );

@@ -1,5 +1,48 @@
 # Changelog
 
+## [UNRELEASED]
+
+- correct placement of --init flag for Docker MCP server execution
+
+## [0.11.1]
+
+- using Aider's --env and --env-file options for Agent LLM providers
+- added confirmation dialog for Aider restart after settings changes
+- improved Agent internal Aider tool description and fixed flow with adding new file to context
+- fixed editing of custom instructions for Agent settings
+
+## [0.11.0]
+
+- fixed issue with docker MCP server not closing properly
+- closing session popup when clicking on the button again
+- added zoom level setting
+- properly adding Aider's reflection message as user message
+- fixed max reflections count
+- reasoning effort and thinking tokens stored for projects
+- fixed Select dropdown positioning
+- removed mode locking functionality - mode is now always 'locked'
+- commands are now stored in input history
+- added Markdown rendering support for messages
+- added bottom bar to message with additional info and actions
+- added ability to remove last message from the context
+
+## [0.10.0]
+
+- arrow up/down does not change the history prompt after editing the text anymore
+- improved agent system prompt
+- added gpt-4.1 and gpt-4.1-mini models for Agent
+- added more information about selected model (tokens, cost per 1M tokens, etc.)
+- showing Agent model in the project bar
+- implemented tool approval settings for enhanced user control
+- added o4-mini model in Agent
+- properly handling user input when tool call is denied by user
+- added model selector for Agent model to Project bar
+- using env vars for Agent LLM providers (API keys, etc.)
+- enhanced agent system prompt with improved structure and clarity
+- added gemini-2.5-flash-preview-04-17 model for Agent
+- added export session to Markdown functionality
+- added option to include repo map in Agent context
+
 ## [0.9.0]
 
 - fixed editor response in architect mode

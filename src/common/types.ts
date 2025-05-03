@@ -71,7 +71,8 @@ export interface QuestionData {
   text: string;
   subject?: string;
   defaultAnswer: string;
-  answerFunction?: (answer: string) => void;
+  internal?: boolean;
+  key?: string;
 }
 
 export type ContextFileSourceType = 'companion' | 'aider' | 'app' | string;
@@ -100,6 +101,10 @@ export interface ProjectSettings {
   mainModel: string;
   weakModel?: string | null;
   architectModel?: string | null;
+  reasoningEffort?: string;
+  thinkingTokens?: string;
+  currentMode: Mode;
+  renderMarkdown: boolean;
 }
 
 export interface ProjectData {
@@ -108,16 +113,31 @@ export interface ProjectData {
   settings?: ProjectSettings;
 }
 
+export interface RawModelInfo {
+  max_input_tokens: number;
+  max_output_tokens: number;
+  input_cost_per_token: number;
+  output_cost_per_token: number;
+  supports_function_calling: boolean;
+  supports_tool_choice: boolean;
+  litellm_provider: string;
+}
+
 export interface ModelsData {
   baseDir: string;
   mainModel: string;
   weakModel?: string | null;
   architectModel?: string | null;
-  maxChatHistoryTokens?: number;
-  reasoningEffort?: number;
-  thinkingTokens?: number;
-  info?: Record<string, unknown>;
+  reasoningEffort?: string;
+  thinkingTokens?: string;
+  info?: RawModelInfo;
   error?: string;
+}
+
+export enum ToolApprovalState {
+  Always = 'always',
+  Never = 'never',
+  Ask = 'ask',
 }
 
 export enum StartupMode {
@@ -129,6 +149,7 @@ export interface SettingsData {
   onboardingFinished?: boolean;
   language: string;
   startupMode?: StartupMode;
+  zoomLevel?: number;
   aider: {
     options: string;
     environmentVariables: string;
@@ -148,8 +169,9 @@ export interface AgentConfig {
     [key: string]: McpServerConfig;
   };
   disabledServers: string[];
-  disabledTools: string[];
+  toolApprovals: Record<string, ToolApprovalState>;
   includeContextFiles: boolean;
+  includeRepoMap: boolean;
   useAiderTools: boolean;
   customInstructions: string;
 }

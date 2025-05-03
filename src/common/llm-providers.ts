@@ -76,9 +76,17 @@ export const PROVIDER_MODELS: Record<string, { models: Record<string, { inputCos
         inputCost: 0.15,
         outputCost: 0.6,
       },
-      'o3-mini': {
+      'o4-mini': {
         inputCost: 1.1,
         outputCost: 4.4,
+      },
+      'gpt-4.1': {
+        inputCost: 2,
+        outputCost: 8,
+      },
+      'gpt-4.1-mini': {
+        inputCost: 0.4,
+        outputCost: 1.6,
       },
     },
   },
@@ -107,6 +115,10 @@ export const PROVIDER_MODELS: Record<string, { models: Record<string, { inputCos
       'gemini-2.0-flash': {
         inputCost: 0.1,
         outputCost: 0.4,
+      },
+      'gemini-2.5-flash-preview-04-17': {
+        inputCost: 0.15,
+        outputCost: 0.6,
       },
       'gemini-2.0-flash-exp': {
         inputCost: 0,

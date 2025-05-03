@@ -47,6 +47,7 @@ dmg:
 linux:
   target:
     - AppImage
+    - deb
   maintainer: Hotovo
   category: Utility
 appImage:

@@ -1,8 +1,9 @@
 import { useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MdOutlineHdrAuto, MdOutlineFileCopy, MdSettings } from 'react-icons/md';
+import { MdOutlineHdrAuto, MdOutlineFileCopy, MdSettings, MdOutlineMap } from 'react-icons/md';
 import { RiToolsFill } from 'react-icons/ri';
-import { SettingsData } from '@common/types';
+import { SettingsData, ToolApprovalState } from '@common/types';
+import { SERVER_TOOL_SEPARATOR } from '@common/utils';
 
 import { McpServerSelectorItem } from './McpServerSelectorItem';
 
@@ -13,7 +14,7 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useSettings } from '@/context/SettingsContext';
 import { useClickOutside } from '@/hooks/useClickOutside';
 
-export const McpSelector = () => {
+export const AgentSelector = () => {
   const { t } = useTranslation();
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -29,7 +30,7 @@ export const McpSelector = () => {
         return;
       }
 
-      const { mcpServers, disabledServers, disabledTools } = settings.agentConfig;
+      const { mcpServers, disabledServers, toolApprovals } = settings.agentConfig;
       const serverNames = Object.keys(mcpServers);
       const enabledServerNames = serverNames.filter((name) => !disabledServers.includes(name));
 
@@ -47,7 +48,8 @@ export const McpSelector = () => {
             try {
               const tools = await window.api.loadMcpServerTools(serverName);
               const serverTotalTools = tools?.length ?? 0;
-              const serverDisabledTools = disabledTools.filter((toolId) => toolId.startsWith(`${serverName}-`)).length;
+              const serverDisabledTools =
+                tools?.filter((tool) => toolApprovals[`${serverName}${SERVER_TOOL_SEPARATOR}${tool.name}`] === ToolApprovalState.Never).length ?? 0;
               return Math.max(0, serverTotalTools - serverDisabledTools);
             } catch (error) {
               console.error(`Failed to load tools for server ${serverName}:`, error);
@@ -68,7 +70,7 @@ export const McpSelector = () => {
 
     void calculateEnabledTools();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings?.agentConfig.mcpServers, settings?.agentConfig.disabledServers, settings?.agentConfig.disabledTools]);
+  }, [settings?.agentConfig.mcpServers, settings?.agentConfig.disabledServers, settings?.agentConfig.toolApprovals]);
 
   if (!settings) {
     return <div className="text-xs text-neutral-400">{t('common.loading')}</div>;
@@ -168,6 +170,17 @@ export const McpSelector = () => {
     void saveSettings(updatedSettings);
   };
 
+  const handleToggleIncludeRepoMap = () => {
+    const updatedSettings: SettingsData = {
+      ...settings,
+      agentConfig: {
+        ...settings.agentConfig,
+        includeRepoMap: !settings.agentConfig.includeRepoMap,
+      },
+    };
+    void saveSettings(updatedSettings);
+  };
+
   const renderConfigureServersButton = (t: (key: string) => string) => (
     <>
       <div className="py-1 border-b border-neutral-700 ">
@@ -183,6 +196,15 @@ export const McpSelector = () => {
             className="flex-1 mr-1"
           />
           <InfoIcon tooltip={t('mcp.includeFilesTooltip')} />
+        </div>
+        <div className="px-3 py-1 text-xs text-neutral-300 hover:text-neutral-100 flex items-center gap-2">
+          <Checkbox
+            checked={settings.agentConfig.includeRepoMap}
+            onChange={handleToggleIncludeRepoMap}
+            label={t('mcp.includeRepoMap')}
+            className="flex-1 mr-1"
+          />
+          <InfoIcon tooltip={t('mcp.includeRepoMapTooltip')} />
         </div>
       </div>
       <button onClick={handleOpenSettings} className="w-full flex items-center px-3 py-2 text-xs text-neutral-300 hover:bg-neutral-700 transition-colors">
@@ -202,6 +224,7 @@ export const McpSelector = () => {
         <span className="text-xxs font-mono">{enabledToolsCount ?? '...'}</span>
         {settings.agentConfig.useAiderTools && <MdOutlineHdrAuto className="w-4 h-4 text-green-400 opacity-50" title={t('mcp.useAiderTools')} />}
         {settings.agentConfig.includeContextFiles && <MdOutlineFileCopy className="w-3 h-3 text-yellow-400 opacity-50" title={t('mcp.includeContextFiles')} />}
+        {settings.agentConfig.includeRepoMap && <MdOutlineMap className="w-3 h-3 text-blue-400 opacity-50" title={t('mcp.includeRepoMap')} />}
       </button>
 
       {selectorVisible && (
@@ -219,7 +242,7 @@ export const McpSelector = () => {
                   key={serverName}
                   serverName={serverName}
                   disabled={settings.agentConfig.disabledServers.includes(serverName)}
-                  disabledTools={settings.agentConfig.disabledTools}
+                  toolApprovals={settings.agentConfig.toolApprovals}
                   onToggle={toggleServer}
                 />
               ))}

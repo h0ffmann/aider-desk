@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CgSpinner } from 'react-icons/cg';
 import { useTranslation } from 'react-i18next';
+import { ToolApprovalState } from '@common/types';
 import { SERVER_TOOL_SEPARATOR } from '@common/utils';
 
 import { Checkbox } from '../common/Checkbox';
@@ -8,27 +9,34 @@ import { Checkbox } from '../common/Checkbox';
 type Props = {
   serverName: string;
   disabled: boolean;
-  disabledTools: string[];
+  toolApprovals: Record<string, ToolApprovalState>;
   onToggle: (serverName: string) => void;
 };
 
-export const McpServerSelectorItem = ({ serverName, disabled, disabledTools, onToggle }: Props) => {
+export const McpServerSelectorItem = ({ serverName, disabled, toolApprovals, onToggle }: Props) => {
   const { t } = useTranslation();
   const [toolsCount, setToolsCount] = useState<number | null>(null);
 
   useEffect(() => {
     const loadTools = async () => {
+      // set to loading state after 500ms
+      const timeoutId = setTimeout(() => setToolsCount(null), 500);
       try {
         const tools = await window.api.loadMcpServerTools(serverName);
-        setToolsCount((tools?.length ?? 0) - disabledTools.filter((toolName) => toolName.startsWith(`${serverName}${SERVER_TOOL_SEPARATOR}`)).length);
+        const totalTools = tools?.length ?? 0;
+        const disabledCount =
+          tools?.filter((tool) => toolApprovals[`${serverName}${SERVER_TOOL_SEPARATOR}${tool.name}`] === ToolApprovalState.Never).length ?? 0;
+        setToolsCount(Math.max(0, totalTools - disabledCount));
       } catch (error) {
         console.error('Failed to load MCP server tools:', error);
-        setToolsCount(0);
+        setToolsCount(0); // Set count to 0 on error
+      } finally {
+        clearTimeout(timeoutId); // Clear timeout regardless of success or error
       }
     };
 
     void loadTools();
-  }, [disabledTools, serverName]);
+  }, [toolApprovals, serverName]);
 
   return (
     <div className="flex items-center justify-between px-3 py-1 hover:bg-neutral-800 cursor-pointer text-xs" onClick={() => onToggle(serverName)}>

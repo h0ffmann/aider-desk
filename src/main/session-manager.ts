@@ -2,7 +2,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 
 import debounce from 'lodash/debounce';
-import { ContextFile, ContextMessage, MessageRole, SessionData } from '@common/types';
+import { ContextFile, ContextMessage, MessageRole, ResponseCompletedData, SessionData } from '@common/types';
 import { extractServerNameToolName, extractTextContent, fileExists, isMessageEmpty, isTextContent } from '@common/utils';
 import ignore from 'ignore';
 
@@ -140,9 +140,75 @@ export class SessionManager {
     this.contextMessages = [];
   }
 
-  filterUserAndAssistantMessages(contextMessages: ContextMessage[] = this.contextMessages): { role: MessageRole; content: string }[] {
+  removeLastMessage(): void {
+    if (this.contextMessages.length === 0) {
+      logger.warn('Attempted to remove last message, but message list is empty.');
+      return;
+    }
+
+    const lastMessage = this.contextMessages[this.contextMessages.length - 1];
+
+    if (lastMessage.role === 'tool' && Array.isArray(lastMessage.content) && lastMessage.content.length > 0 && lastMessage.content[0].type === 'tool-result') {
+      const toolMessage = this.contextMessages.pop() as ContextMessage & { role: 'tool' }; // Remove the tool message
+      const toolCallIdToRemove = toolMessage.content[0].toolCallId;
+      logger.debug(`Session: Removed last tool message (ID: ${toolCallIdToRemove}). Total messages: ${this.contextMessages.length}`);
+
+      // Iterate backward to find the corresponding assistant message
+      for (let i = this.contextMessages.length - 1; i >= 0; i--) {
+        const potentialAssistantMessage = this.contextMessages[i];
+
+        if (potentialAssistantMessage.role === 'assistant' && Array.isArray(potentialAssistantMessage.content)) {
+          const toolCallIndex = potentialAssistantMessage.content.findIndex((part) => part.type === 'tool-call' && part.toolCallId === toolCallIdToRemove);
+
+          if (toolCallIndex !== -1) {
+            // Remove the specific tool-call part
+            potentialAssistantMessage.content.splice(toolCallIndex, 1);
+            logger.debug(`Session: Removed tool-call part (ID: ${toolCallIdToRemove}) from assistant message at index ${i}.`);
+
+            // Check if the assistant message is now empty or only contains empty text parts
+            const isEmpty = potentialAssistantMessage.content.length === 0;
+
+            if (isEmpty) {
+              this.contextMessages.splice(i, 1); // Remove the now empty assistant message
+              logger.debug(`Session: Removed empty assistant message at index ${i} after removing tool-call. Total messages: ${this.contextMessages.length}`);
+            }
+            // Found and processed the corresponding assistant message, stop searching
+            break;
+          }
+        }
+      }
+    } else {
+      // If the last message is not a tool message, just remove it
+      this.contextMessages.pop();
+      logger.debug(`Session: Removed last non-tool message. Total messages: ${this.contextMessages.length}`);
+    }
+
+    this.saveAsAutosaved();
+    void this.loadMessages(this.contextMessages); // Reload messages in the UI
+  }
+
+  toConnectorMessages(contextMessages: ContextMessage[] = this.contextMessages): { role: MessageRole; content: string }[] {
+    let aiderPrompt = '';
+
     return contextMessages.flatMap((message) => {
       if (message.role === MessageRole.User || message.role === MessageRole.Assistant) {
+        aiderPrompt = '';
+
+        // Check for aider run_prompt tool call in assistant messages to extract the original prompt
+        if (message.role === MessageRole.Assistant && Array.isArray(message.content)) {
+          for (const part of message.content) {
+            if (part.type === 'tool-call') {
+              const [serverName, toolName] = extractServerNameToolName(part.toolName);
+              // @ts-expect-error part.args contains the prompt in this case
+              if (serverName === 'aider' && toolName === 'run_prompt' && part.args && 'prompt' in part.args) {
+                aiderPrompt = part.args.prompt as string;
+                // Found the prompt, no need to check other parts of this message
+                break;
+              }
+            }
+          }
+        }
+
         const content = extractTextContent(message.content);
         if (!content) {
           return [];
@@ -154,10 +220,53 @@ export class SessionManager {
           },
         ];
       } else if (message.role === 'tool') {
-        return message.content.map((part) => ({
-          role: MessageRole.Assistant,
-          content: `I called tool ${part.toolName} and got result:\n${JSON.stringify(part.result)}`,
-        }));
+        return message.content.flatMap((part) => {
+          const [serverName, toolName] = extractServerNameToolName(part.toolName);
+          if (serverName === 'aider' && toolName === 'run_prompt' && aiderPrompt) {
+            const messages = [
+              {
+                role: MessageRole.User,
+                content: aiderPrompt,
+              },
+            ];
+
+            if (typeof part.result === 'string' && part.result) {
+              // old format
+              messages.push({
+                role: MessageRole.Assistant,
+                content: part.result as string,
+              });
+            } else {
+              // @ts-expect-error part.result.responses is expected to be in the result
+              const responses = part.result?.responses;
+              if (responses) {
+                responses.forEach((response: ResponseCompletedData) => {
+                  if (response.reflectedMessage) {
+                    messages.push({
+                      role: MessageRole.User,
+                      content: response.reflectedMessage,
+                    });
+                  }
+                  if (response.content) {
+                    messages.push({
+                      role: MessageRole.Assistant,
+                      content: response.content,
+                    });
+                  }
+                });
+              }
+            }
+
+            return messages;
+          } else {
+            return [
+              {
+                role: MessageRole.Assistant,
+                content: `I called tool ${part.toolName} and got result:\n${JSON.stringify(part.result)}`,
+              },
+            ];
+          }
+        });
       } else {
         return [];
       }
@@ -184,12 +293,12 @@ export class SessionManager {
     }
   }
 
-  async loadMessages(sessionData: SessionData & { contextMessages?: ContextMessage[] }): Promise<void> {
+  async loadMessages(contextMessages: ContextMessage[]): Promise<void> {
     // Clear all current messages
     this.project.clearContext();
 
     // Load messages (only supports new CoreMessage format)
-    this.contextMessages = sessionData.contextMessages || [];
+    this.contextMessages = contextMessages;
 
     // Add messages to the UI
     for (let i = 0; i < this.contextMessages.length; i++) {
@@ -232,19 +341,32 @@ export class SessionManager {
           if (part.type === 'tool-result') {
             const [serverName, toolName] = extractServerNameToolName(part.toolName);
             this.project.addToolMessage(part.toolCallId, serverName, toolName, undefined, JSON.stringify(part.result));
+
+            if (serverName === 'aider' && toolName === 'run_prompt') {
+              // @ts-expect-error part.result.responses is expected to be in the result
+              const responses = part.result?.responses;
+              if (responses) {
+                responses.forEach((response: Pick<ResponseCompletedData, 'messageId' | 'content' | 'reflectedMessage'>) => {
+                  this.project.addResponseCompletedMessage({
+                    ...response,
+                    baseDir: this.project.baseDir,
+                  });
+                });
+              }
+            }
           }
         }
       }
     }
   }
 
-  async loadFiles(sessionData: SessionData & { contextFiles?: ContextFile[] }): Promise<void> {
+  async loadFiles(contextFiles: ContextFile[]): Promise<void> {
     // Drop all current files
     this.getContextFiles().forEach((contextFile) => {
       this.project.sendDropFile(contextFile.path, contextFile.readOnly);
     });
 
-    this.contextFiles = sessionData.contextFiles || [];
+    this.contextFiles = contextFiles;
     this.getContextFiles().forEach((contextFile) => {
       this.project.sendAddFile(contextFile);
     });
@@ -259,8 +381,8 @@ export class SessionManager {
         return;
       }
 
-      await this.loadMessages(sessionData);
-      await this.loadFiles(sessionData);
+      await this.loadMessages(sessionData.contextMessages || []);
+      await this.loadFiles(sessionData.contextFiles || []);
 
       logger.info(`Session loaded from ${name}`);
     } catch (error) {
@@ -342,6 +464,34 @@ export class SessionManager {
       logger.error('Failed to get session data:', { name, error });
       return null;
     }
+  }
+
+  async generateSessionMarkdown(): Promise<string | null> {
+    let markdown = '';
+
+    for (const message of this.contextMessages) {
+      markdown += `### ${message.role.charAt(0).toUpperCase() + message.role.slice(1)}\n\n`;
+
+      if (message.role === 'user' || message.role === 'assistant') {
+        const content = extractTextContent(message.content);
+        if (content) {
+          markdown += `${content}\n\n`;
+        }
+      } else if (message.role === 'tool') {
+        if (Array.isArray(message.content)) {
+          for (const part of message.content) {
+            if (part.type === 'tool-result') {
+              const [, toolName] = extractServerNameToolName(part.toolName);
+              markdown += `**Tool Call ID:** \`${part.toolCallId}\`\n`;
+              markdown += `**Tool:** \`${toolName}\`\n`;
+              markdown += `**Result:**\n\`\`\`json\n${JSON.stringify(part.result, null, 2)}\n\`\`\`\n\n`;
+            }
+          }
+        }
+      }
+    }
+
+    return markdown;
   }
 
   async delete(name: string): Promise<void> {

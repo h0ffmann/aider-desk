@@ -10,12 +10,14 @@ import { CopyMessageButton } from './CopyMessageButton';
 import { parseToolContent } from './utils';
 
 import { ToolMessage } from '@/types/message';
+import { MessageBar } from '@/components/message/MessageBar';
 
 type Props = {
   message: ToolMessage;
+  onRemove?: () => void;
 };
 
-export const ToolMessageBlock = ({ message }: Props) => {
+export const ToolMessageBlock = ({ message, onRemove }: Props) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(true); // Controls visibility
   const [isInitialAutoExpand, setIsInitialAutoExpand] = useState(true); // Tracks the initial phase
@@ -104,24 +106,21 @@ export const ToolMessageBlock = ({ message }: Props) => {
   };
 
   return (
-    <div className="border border-neutral-700 rounded-md mb-2">
+    <div className="border border-neutral-800 rounded-md mb-2 group p-3 bg-neutral-850">
       {/* Header */}
-      <div
-        className="flex items-center justify-between gap-2 p-2 px-3 bg-neutral-800 cursor-pointer hover:bg-neutral-750 select-none"
-        onClick={handleHeaderClick}
-      >
+      <div className="flex items-center justify-between gap-2  cursor-pointer hover:bg-neutral-750 select-none rounded-t-md" onClick={handleHeaderClick}>
         <div className="flex items-center gap-2">
-          <div className={`text-neutral-400 ${isExecuting ? 'animate-pulse' : ''}`}>
+          <div className={`text-neutral-500 ${isExecuting ? 'animate-pulse' : ''}`}>
             <RiToolsFill className="w-4 h-4" />
           </div>
-          <div className={`font-medium text-xs text-neutral-300 ${isExecuting ? 'animate-pulse' : ''}`}>
+          <div className={`font-medium text-xs text-neutral-100 ${isExecuting ? 'animate-pulse' : ''}`}>
             {t('toolMessage.toolLabel', { server: message.serverName, tool: message.toolName })}
           </div>
           {isExecuting && <CgSpinner className="animate-spin w-3 h-3 text-neutral-400" />}
           {!isExecuting && parsedResult?.isError === true && <VscError className="text-red-500" />}
         </div>
         <div className="flex items-center gap-2">
-          <div className="text-neutral-400">{isExpanded ? <MdKeyboardArrowDown size={16} /> : <MdKeyboardArrowRight size={16} />}</div>
+          <div className="text-neutral-300">{isExpanded ? <MdKeyboardArrowDown size={16} /> : <MdKeyboardArrowRight size={16} />}</div>
         </div>
       </div>
 
@@ -154,6 +153,7 @@ export const ToolMessageBlock = ({ message }: Props) => {
           )}
         </div>
       </div>
+      <MessageBar content={message.content} usageReport={message.usageReport} removeMessage={onRemove} />
     </div>
   );
 };

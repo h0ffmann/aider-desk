@@ -1,264 +1,44 @@
-# ✨ AiderDesk
+# ✨ AiderDesk: AI-Powered Coding
 
-**Supercharge your coding workflow** with AiderDesk, a sleek desktop application that brings the power of [aider](https://aider.chat) to your fingertips with a modern GUI. Leverage AI to accelerate your coding tasks while enjoying seamless project management, cost tracking, and IDE integration.
+**Elevate your development workflow with AiderDesk**, a sophisticated desktop application bringing all the power of [aider](https://aider.chat) into a user-friendly graphical interface. Whether you're managing multiple projects, integrating with your favorite IDE, or tracking costs, AiderDesk elevates your productivity to new heights.
 
-## 🚀 Introduction
+## 🎬 Overview
 
-Transform your AI coding experience with AiderDesk - all the power of the Aider console tool in an intuitive desktop interface. Whether you're managing multiple projects, integrating with your favorite IDE, or tracking costs, AiderDesk elevates your productivity to new heights.
-
-## Table of Contents
-- [✨ Key Features](#-key-features)
-- [📥 Installation](#-installation)
-- [📸 Previews](#-previews)
-- [🤖 Agent Mode & MCP Support](#-agent-mode--mcp-support)
-- [📄 Comprehensive Context File Management](#-comprehensive-context-file-management)
-- [💾 Session Management](#-session-management)
-- [🌐 REST API](#-rest-api)
-- [👨‍💻 Development Setup](#-development-setup)
-- [🤝 Contributing](#-contributing)
-- [⭐ Star History](#-star-history)
-
-## 🎬 Quick Demo
+See AiderDesk in action:
 
 <div align="center">
-  <a href="https://www.youtube.com/watch?v=9JkUwn9rk2g">
-    <img src="https://img.youtube.com/vi/9JkUwn9rk2g/0.jpg" alt="Demo Video" width=600>
+  <a href="https://www.youtube.com/watch?v=9oyIdntCh7g">
+    <img src="https://img.youtube.com/vi/9oyIdntCh7g/0.jpg" alt="AiderDesk Overview Video" width=400>
   </a>
 </div>
 
 ## ✨ Key Features
 
-*   **🖥️ Intuitive GUI** - Replace command-line complexities with a sleek visual interface
-*   **📂 Project Management** - Organize and switch between multiple codebases effortlessly
-*   **🔌 IDE Integration** - Automatically manage context files in:
-    * IntelliJ IDEA ([Plugin](https://plugins.jetbrains.com/plugin/26313-aiderdesk-connector) | [GitHub](https://github.com/hotovo/aider-desk-connector-intellij-plugin))
-    * VSCode ([Extension](https://marketplace.visualstudio.com/items?itemName=hotovo-sk.aider-desk-connector) | [GitHub](https://github.com/hotovo/aider-desk-connector-vscode-extension))
-*   **🤖 Agent Mode** - Leverage an autonomous AI agent powered by the Vercel AI SDK. The agent can use tools (including Aider itself and external MCP servers) to gather context, plan, and execute complex coding tasks.
-*   **🧩 MCP Support** - Connect to Model Context Protocol servers to extend the Agent's capabilities with external tools (web search, documentation access, etc.).
-*   **🌐 REST API** - Expose functionality via REST API for external tools
-*   **🔑 Settings Management** - Easily configure API keys and environment variables
-*   **💰 Cost Tracking** - Monitor token usage and expenses for both Aider and the Agent.
-*   **📨 Structured Messages** - View code, prompts, agent thoughts, and tool outputs in a clear, organized manner
-*   **📄 Comprehensive Context File Management** - Automatically manage context files via IDE plugins (IntelliJ/VSCode) or manually add/drop files using the integrated view that shows *all* project files.
-*   **🔄 Model Switching** - Seamlessly switch between different AI models while preserving context
-*   **🔍 Code Diff Viewer** - Review changes with side-by-side comparison
-*   **⏪ One-Click Reverts** - Undo specific AI-generated changes while keeping others
-*   **📋 Easy Sharing** - Copy and share code changes or conversations instantly
-*   **💾 Session Management** - Save your current work (messages, context files) as a session and load it later to pick up exactly where you left off.
+AiderDesk is packed with features designed for modern software development:
 
-## 📥 Installation
+*   **🖥️ Intuitive GUI**: A clean, visual interface replacing command-line interactions.
+*   **📂 Multi-Project Management**: Seamlessly organize, switch between, and manage multiple codebases.
+*   **🔌 Effortless IDE Integration**: Automatically sync context files with your active editor in:
+    *   IntelliJ IDEA ([Plugin](https://plugins.jetbrains.com/plugin/26313-aiderdesk-connector) | [GitHub](https://github.com/hotovo/aider-desk-connector-intellij-plugin))
+    *   VSCode ([Extension](https://marketplace.visualstudio.com/items?itemName=hotovo-sk.aider-desk-connector) | [GitHub](https://github.com/hotovo/aider-desk-connector-vscode-extension))
+*   **🤖 Powerful Agent Mode**: Utilize an autonomous AI agent (powered by Vercel AI SDK) capable of complex task planning and execution using various tools.
+*   **🧩 Extensible via MCP**: Connect to Model Context Protocol (MCP) servers to grant the Agent access to external tools like web search, documentation lookups, and more.
+*   **📄 Smart Context Management**: Automatically manage context via IDE plugins or manually control context using the integrated project file browser.
+*   **💾 Robust Session Management**: Save and load entire work sessions (chat history, context files) to easily switch between tasks or resume later.
+*   **🔄 Flexible Model Switching**: Change AI models on the fly while retaining your conversation and context.
+*   **💬 Multiple Chat Modes**: Tailor the AI interaction for different needs (e.g., coding, asking questions).
+*   **🔍 Integrated Diff Viewer**: Review AI-generated code changes with a clear side-by-side comparison.
+*   **⏪ One-Click Reverts**: Easily undo specific AI modifications while keeping others.
+*   **💰 Cost Tracking**: Monitor token usage and associated costs per project session for both Aider and the Agent.
+*   **⚙️ Centralized Settings**: Manage API keys, environment variables, and configurations conveniently.
+*   **🌐 Versatile REST API**: Integrate AiderDesk with external tools and workflows.
+*   **📨 Structured Communication**: View prompts, AI responses, agent thoughts, and tool outputs in an organized format.
+*   **📋 Easy Sharing**: Copy code snippets or entire conversations effortlessly.
 
-### 📋 Requirements
-- Python 3.9-3.12 installed on your system
+---
+### 📄 Comprehensive Context File Management
 
-### 🚀 Quick Start
-1. Download the latest release for your platform from [Releases](https://github.com/hotovo/aider-desk/releases)
-2. Run the downloaded executable
-
-### 🔧 Troubleshooting
-
-#### 🐍 Python Version Detection
-
-If you encounter issues with the application not detecting the correct Python version, you can specify the path to the desired Python executable using the `AIDER_DESK_PYTHON` environment variable. This is typically only needed on the initial run/setup of AiderDesk.
-
-For example, on macOS or Linux:
-
-```bash
-export AIDER_DESK_PYTHON=/usr/bin/python3.10
-```
-
-Or on Windows:
-
-```powershell
-$env:AIDER_DESK_PYTHON = "C:\Path\To\Python310\python.exe"
-```
-
-Replace `/usr/bin/python3.10` or `C:\Path\To\Python310\python.exe` with the actual path to your Python executable.
-
-#### 🚫 Disabling Auto Updates
-
-If you want to disable automatic updates, you can set the `AIDER_DESK_NO_AUTO_UPDATE` environment variable to `true`. This is useful in environments where you want to control when updates are applied.
-
-For example, on macOS or Linux:
-
-```bash
-export AIDER_DESK_NO_AUTO_UPDATE=true
-```
-
-Or on Windows:
-
-```powershell
-$env:AIDER_DESK_NO_AUTO_UPDATE = "true"
-```
-
-## 📸 Previews
-
-<div align="center">
-
-### 🖥️ Aider Desk Interface
-<img src="docs/images/aider-desk.png" alt="Aider Desk" width="800"/>
-<p><em>Main application interface showing the chat interface, file management, and project overview</em></p>
-
-### ⚙️ Configuration
-<img src="docs/images/settings.png" alt="Configuration" width="800"/>
-<p><em>Aider settings and preferences</em></p>
-
-### 📂 Multiple Project Management
-<img src="docs/images/multiple-projects.gif" alt="Multiple Projects" width="800"/>
-<p><em>Manage and switch between multiple projects</em></p>
-
-### 🔄 Model Switching Interface
-<img src="docs/images/model-selector.gif" alt="Model Switching" width="800"/>
-<p><em>Switch between different models</em></p>
-
-### 💬 Chat Mode Selection
-<img src="docs/images/chat-modes.gif" alt="Chat Modes" width="800"/>
-<p><em>Switch between different chat modes</em></p>
-
-### 🤖 Question Answering and Commands
-<img src="docs/images/commands.gif" alt="Commands" width="800"/>
-<p><em>Answer questions and run commands</em></p>
-
-### 🔍 Code Diff Viewer
-<img src="docs/images/code-diff.png" alt="Code Diff" width="600"/>
-<p><em>Side-by-side code comparison and diff viewer</em></p>
-
-### 💰 Cost Tracking
-<img src="docs/images/cost-tracking.png" alt="Cost Tracking" width="300"/>
-<p><em>Token usage and cost tracking for session per project</em></p>
-
-### 🛠️ MCP Server Integration
-<img src="docs/images/mcp-servers.gif" alt="MCP Servers" width="800"/>
-<p><em>Configure and manage Model Context Protocol servers for enhanced AI capabilities</em></p>
-
-</div>
-
-## 🤖 Agent Mode & MCP Support
-
-<div align="center">
-  <a href="https://youtu.be/Lsd7QReXfy4">
-    <img src="https://img.youtube.com/vi/Lsd7QReXfy4/0.jpg" alt="Demo Video" width=600>
-  </a>
-</div>
-
-AiderDesk features a powerful **Agent mode** built on the Vercel AI SDK. This mode provides a flexible framework for an AI agent to handle complex tasks. The agent's capabilities are defined by the tools *you* provide, primarily through Model Context Protocol (MCP) servers, alongside its built-in ability to interact with Aider.
-
-### Agent Capabilities:
-- **Customizable Toolset**: The agent is not opinionated; its functionality depends entirely on the tools configured by the user. Connect it to MCP servers offering web search, documentation access, custom scripts, or any other capability you need.
-- **Autonomous Task Execution**: Based on the available tools, the agent can understand requests, plan multi-step execution flows, and utilize the tools to achieve the goal.
-- **Aider Integration**: Seamlessly uses Aider as a core tool for code generation, modification, and analysis tasks.
-- **Multi-Provider Support**: Configure the agent to use different LLM providers like OpenAI, Anthropic, Gemini, Bedrock, Deepseek, or any OpenAI-compatible endpoint.
-- **Transparent Reasoning**: Observe the agent's thought process, tool selection, and execution steps directly in the chat interface.
-
-### 🛠️ Model Context Protocol (MCP) Integration
-
-The Agent mode's capabilities can be significantly extended by connecting to [Model Context Protocol](https://github.com/model-context-protocol/mcp) (MCP) servers.
-
-#### What is MCP?
-
-MCP connects AI models to external tools like web browsers, documentation systems, and specialized programming utilities. AiderDesk can use these tools to gather information, then pass the results to Aider for implementing actual code changes.
-
-#### How MCP Enhances the Agent:
-
-- **External Tool Access**: Allows the agent to use tools beyond Aider, such as web browsers, documentation searchers, or custom utilities hosted on MCP servers.
-- **Broader Context**: Enables the agent to gather information from external sources before instructing Aider to make code changes.
-- **Flexible Configuration**: Enable/disable specific MCP servers or individual tools within the Agent settings.
-
-AiderDesk should work with any MCP-compatible server. The agent can be configured to use tools from these servers alongside its built-in capabilities (like interacting with Aider).
-
-#### Built-in AiderDesk MCP Server
-
-AiderDesk comes with a built-in MCP server that provides tools for interacting with the AiderDesk API. This allows you to use MCP to manage context files, run prompts, and more.
-
-#### Configuration
-
-To use the built-in MCP server, add the following configuration to your MCP settings:
-
-<details>
-  <summary>Windows</summary>
-
-```json
-{
-  "mcpServers": {
-    "aider-desk": {
-      "command": "node",
-      "args": ["path-to-appdata/aider-desk/mcp-server/aider-desk-mcp-server.js", "/path/to/project"],
-      "env": {
-        "AIDER_DESK_API_BASE_URL": "http://localhost:24337/api"
-      }
-    }
-  }
-}
-```
-
-**Note:** Replace `path-to-appdata` with the absolute path to your AppData directory. You can find this value by running `echo %APPDATA%` in your command prompt.
-</details>
-
-<details>
-  <summary>macOS</summary>
-
-```json
-{
-  "mcpServers": {
-    "aider-desk": {
-      "command": "node",
-      "args": ["/path/to/home/Library/Application Support/aider-desk/mcp-server/aider-desk-mcp-server.js", "/path/to/project"],
-      "env": {
-        "AIDER_DESK_API_BASE_URL": "http://localhost:24337/api"
-      }
-    }
-  }
-}
-```
-
-**Note:** Replace `/path/to/home` with the absolute path to your home directory. You can find this value by running `echo $HOME` in your terminal.
-</details>
-
-<details>
-  <summary>Linux</summary>
-
-```json
-{
-  "mcpServers": {
-    "aider-desk": {
-      "command": "node",
-      "args": ["/path/to/home/.config/aider-desk/mcp-server/aider-desk-mcp-server.js", "/path/to/project"],
-      "env": {
-        "AIDER_DESK_API_BASE_URL": "http://localhost:24337/api"
-      }
-    }
-  }
-}
-```
-
-**Note:** Replace `/path/to/home` with the absolute path to your home directory. You can find this value by running `echo $HOME` in your terminal.
-</details>
-
-The server supports the following:
-
-**Command-line arguments:**
-- First argument: Project directory path (default: current directory)
-
-**Environment variables:**
-- `AIDER_DESK_API_BASE_URL`: The base URL of the AiderDesk API (default: http://localhost:24337/api)
-
-With this configuration, the MCP server will automatically use the specified project directory for all tool calls, so you don't need to specify the project directory when using the tools.
-
-#### Available Tools
-
-The AiderDesk MCP server provides the following tools:
-
-- `add_context_file`: Add a file to the context of AiderDesk
-- `drop_context_file`: Remove a file from the context of AiderDesk
-- `get_context_files`: Get the list of context files in AiderDesk
-- `get_addable_files`: Get the list of project files that can be added to the context context
-- `run_prompt`: Run a prompt in AiderDesk
-
-These tools allow MCP clients (Claude Desktop, Claude Code, Cursor, Windsurf...) to interact with your AiderDesk, managing context files and running prompts.
-
-**Note:** The AiderDesk application must be running for the MCP server to function.
-
-## 📄 Comprehensive Context File Management
+Keep the AI focused on the relevant code with flexible context management options.
 
 <div align="center">
   <a href="https://youtu.be/_hA1_NJDK3s">
@@ -266,16 +46,13 @@ These tools allow MCP clients (Claude Desktop, Claude Code, Cursor, Windsurf...)
   </a>
 </div>
 
-Keep your AI context perfectly synchronized with the files relevant to your current task. AiderDesk offers two flexible ways to manage context files:
+1.  **Automatic IDE Sync**: Use the IntelliJ IDEA or VSCode plugins to automatically add/remove the currently active file(s) in your editor to/from the AiderDesk context.
+2.  **Manual Control**: Utilize the "Context Files" sidebar in AiderDesk, which displays your project's file tree. Click files to manually add or remove them from the context, giving you precise control.
 
-1.  **Automatic Management via IDE Plugins**: Integrate AiderDesk with your favorite IDE (IntelliJ IDEA or VSCode) using our dedicated plugins. The plugins automatically add the currently active file(s) in your editor to the AiderDesk context and remove them when you switch away. This ensures the AI always has the most relevant code in view.
-    *   IntelliJ IDEA ([Plugin](https://plugins.jetbrains.com/plugin/26313-aiderdesk-connector) | [GitHub](https://github.com/hotovo/aider-desk-connector-intellij-plugin))
-    *   VSCode ([Extension](https://marketplace.visualstudio.com/items?itemName=hotovo-sk.aider-desk-connector) | [GitHub](https://github.com/hotovo/aider-desk-connector-vscode-extension))
-2.  **Manual Management via Sidebar**: Use the dedicated "Context Files" panel within AiderDesk. This panel can display *all* files within your project directory. Simply click on any file to add it to or remove it from the AI's context. This provides granular control when you need to include specific files beyond what's currently open in your editor.
+---
+### 💾 Session Management
 
-This combination allows for both seamless, automated context tracking and precise manual control over the information provided to the AI.
-
-## 💾 Session Management
+Never lose your work. Save and load complete sessions, including chat history and context files, per project.
 
 <div align="center">
   <a href="https://youtu.be/eFCod0fOhjI">
@@ -283,18 +60,40 @@ This combination allows for both seamless, automated context tracking and precis
   </a>
 </div>
 
-Never lose your train of thought or coding progress again. AiderDesk's session management allows you to save the complete state of your current workspace, including:
+- **Preserve State**: Save messages and context files as a named session.
+- **Resume Seamlessly**: Load a session to restore your exact workspace.
+- **Manage Multiple Tasks**: Easily switch between different features, bug fixes, or experiments within the same project.
 
--   **Chat History**: All messages exchanged with the AI.
--   **Context Files**: The list of files currently included in the AI's context.
+---
+### 🤖 Agent Mode & MCP Support
 
-You can save multiple named sessions per project. Later, simply load a session to restore the chat history and context files exactly as they were, allowing you to seamlessly switch between different tasks, branches, or experiments without losing valuable context. This is particularly useful for:
+Unlock advanced AI capabilities with AiderDesk's Agent mode. Built on the Vercel AI SDK, the agent can autonomously plan and execute complex tasks by leveraging a customizable set of tools.
 
--   Managing multiple features or bug fixes within the same project.
--   Pausing work on a complex task and resuming later.
--   Comparing different approaches or AI interactions side-by-side.
+<div align="center">
+  <a href="https://youtu.be/Lsd7QReXfy4">
+    <img src="https://img.youtube.com/vi/Lsd7QReXfy4/0.jpg" alt="Agent Mode & MCP Demo Video" width=400>
+  </a>
+</div>
 
-## 🌐 REST API
+#### Agent Capabilities:
+- **Tool-Driven**: Functionality is defined by connected tools (MCP servers + built-in Aider interaction).
+- **Autonomous Planning**: Breaks down complex requests into executable steps using available tools.
+- **Seamless Aider Integration**: Uses Aider for core coding tasks like generation and modification.
+- **Multi-Provider LLMs**: Supports various LLM providers (OpenAI, Anthropic, Gemini, Bedrock, Deepseek, OpenAI-compatible).
+- **Transparent Operation**: Observe the agent's reasoning, plans, and tool usage in the chat.
+
+#### 🛠️ Extending Capabilities with MCP
+
+Connect AiderDesk to [Model Context Protocol](https://github.com/model-context-protocol/mcp) (MCP) servers to significantly enhance the Agent's abilities. MCP allows AI models to interact with external tools (web browsers, documentation systems, custom utilities).
+
+- **Access External Tools**: Grant the agent capabilities beyond built-in functions.
+- **Gather Richer Context**: Enable the agent to fetch external information before instructing Aider.
+- **Flexible Configuration**: Manage MCP servers and individual tools within Agent settings.
+
+AiderDesk is compatible with any MCP server, allowing you to tailor the agent's toolset precisely to your needs.
+
+---
+### 🌐 REST API
 
 AiderDesk provides a REST API for external tools to interact with the application. The API is running on the same port as the main application (default 24337, configurable by `AIDER_DESK_PORT` environment variable).
 
@@ -430,6 +229,114 @@ AiderDesk provides a REST API for external tools to interact with the applicatio
   ]
   ```
 </details>
+
+---
+### 🔌 AiderDesk as an MCP Server
+
+AiderDesk includes a built-in MCP server, allowing other MCP-compatible clients (like Claude Desktop, Cursor, etc.) to interact with AiderDesk's core functionalities.
+
+#### Configuration
+
+Add the following configuration to your MCP client settings, adjusting paths as needed:
+
+<details>
+  <summary>Windows</summary>
+
+```json
+{
+  "mcpServers": {
+    "aider-desk": {
+      "command": "node",
+      "args": ["path-to-appdata/aider-desk/mcp-server/aider-desk-mcp-server.js", "/path/to/project"],
+      "env": {
+        "AIDER_DESK_API_BASE_URL": "http://localhost:24337/api"
+      }
+    }
+  }
+}
+```
+
+**Note:** Replace `path-to-appdata` with the absolute path to your AppData directory. You can find this value by running `echo %APPDATA%` in your command prompt.
+</details>
+
+<details>
+  <summary>macOS</summary>
+
+```json
+{
+  "mcpServers": {
+    "aider-desk": {
+      "command": "node",
+      "args": ["/path/to/home/Library/Application Support/aider-desk/mcp-server/aider-desk-mcp-server.js", "/path/to/project"],
+      "env": {
+        "AIDER_DESK_API_BASE_URL": "http://localhost:24337/api"
+      }
+    }
+  }
+}
+```
+
+**Note:** Replace `/path/to/home` with the absolute path to your home directory. You can find this value by running `echo $HOME` in your terminal.
+</details>
+
+<details>
+  <summary>Linux</summary>
+
+```json
+{
+  "mcpServers": {
+    "aider-desk": {
+      "command": "node",
+      "args": ["/path/to/home/.config/aider-desk/mcp-server/aider-desk-mcp-server.js", "/path/to/project"],
+      "env": {
+        "AIDER_DESK_API_BASE_URL": "http://localhost:24337/api"
+      }
+    }
+  }
+}
+```
+
+**Note:** Replace `/path/to/home` with the absolute path to your home directory. You can find this value by running `echo $HOME` in your terminal.
+</details>
+
+**Arguments & Environment:**
+- **Command Argument 1:** Project directory path (required).
+- **`AIDER_DESK_API_BASE_URL`:** Base URL of the running AiderDesk API (default: `http://localhost:24337/api`).
+
+#### Available Tools via MCP
+
+The built-in server exposes these tools to MCP clients:
+- `add_context_file`: Add a file to AiderDesk's context.
+- `drop_context_file`: Remove a file from AiderDesk's context.
+- `get_context_files`: List files currently in AiderDesk's context.
+- `get_addable_files`: List project files available to be added to the context.
+- `run_prompt`: Execute a prompt within AiderDesk.
+
+**Note:** AiderDesk must be running for its MCP server to be accessible.
+
+---
+
+## 📥 Installation
+
+### Requirements
+- Python 3.9-3.12 installed.
+
+### Quick Start
+1. Download the latest release for your OS from [Releases](https://github.com/hotovo/aider-desk/releases).
+2. Run the executable.
+
+### Troubleshooting
+
+#### Python Version Issues
+If AiderDesk struggles to find your Python installation, specify the path via the `AIDER_DESK_PYTHON` environment variable (usually only needed on first run):
+- **macOS/Linux:** `export AIDER_DESK_PYTHON=/path/to/your/python3.x`
+- **Windows:** `$env:AIDER_DESK_PYTHON = "C:\Path\To\Python\python.exe"`
+
+#### Disabling Auto Updates
+To prevent automatic updates, set the `AIDER_DESK_NO_AUTO_UPDATE` environment variable:
+- **macOS/Linux:** `export AIDER_DESK_NO_AUTO_UPDATE=true`
+- **Windows:** `$env:AIDER_DESK_NO_AUTO_UPDATE = "true"`
+
 
 ## 👨‍💻 Development Setup
 If you want to run from source, you can follow these steps:

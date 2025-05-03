@@ -40,7 +40,7 @@ const tokensInfoListeners: Record<string, (event: Electron.IpcRendererEvent, dat
 const toolListeners: Record<string, (event: Electron.IpcRendererEvent, data: ToolData) => void> = {};
 const inputHistoryUpdatedListeners: Record<string, (event: Electron.IpcRendererEvent, data: InputHistoryData) => void> = {};
 const userMessageListeners: Record<string, (event: Electron.IpcRendererEvent, data: UserMessageData) => void> = {};
-const clearMessagesListeners: Record<string, (event: Electron.IpcRendererEvent, baseDir: string) => void> = {};
+const clearProjectListeners: Record<string, (event: Electron.IpcRendererEvent, baseDir: string, clearMessages: boolean, clearSession: boolean) => void> = {};
 
 const api: ApplicationAPI = {
   loadSettings: () => ipcRenderer.invoke('load-settings'),
@@ -62,7 +62,7 @@ const api: ApplicationAPI = {
   updateWeakModel: (baseDir, model) => ipcRenderer.send('update-weak-model', baseDir, model),
   updateArchitectModel: (baseDir, model) => ipcRenderer.send('update-architect-model', baseDir, model),
   getProjectSettings: (baseDir) => ipcRenderer.invoke('get-project-settings', baseDir),
-  saveProjectSettings: (baseDir, settings) => ipcRenderer.invoke('save-project-settings', baseDir, settings),
+  patchProjectSettings: (baseDir, settings) => ipcRenderer.invoke('patch-project-settings', baseDir, settings),
   getFilePathSuggestions: (currentPath: string, directoriesOnly = false) => ipcRenderer.invoke('get-file-path-suggestions', currentPath, directoriesOnly),
   getAddableFiles: (baseDir: string) => ipcRenderer.invoke('get-addable-files', baseDir),
   addFile: (baseDir: string, filePath: string, readOnly = false) => ipcRenderer.send('add-file', baseDir, filePath, readOnly),
@@ -77,12 +77,15 @@ const api: ApplicationAPI = {
   loadSessionMessages: (baseDir: string, name: string) => ipcRenderer.invoke('load-session-messages', baseDir, name),
   loadSessionFiles: (baseDir: string, name: string) => ipcRenderer.invoke('load-session-files', baseDir, name),
   listSessions: (baseDir: string) => ipcRenderer.invoke('list-sessions', baseDir),
+  exportSessionToMarkdown: (baseDir: string) => ipcRenderer.invoke('export-session-to-markdown', baseDir),
   getRecentProjects: () => ipcRenderer.invoke('get-recent-projects'),
   addRecentProject: (baseDir: string) => ipcRenderer.invoke('add-recent-project', baseDir),
   removeRecentProject: (baseDir: string) => ipcRenderer.invoke('remove-recent-project', baseDir),
   interruptResponse: (baseDir: string) => ipcRenderer.send('interrupt-response', baseDir),
   applyEdits: (baseDir: string, edits: FileEdit[]) => ipcRenderer.send('apply-edits', baseDir, edits),
   clearContext: (baseDir: string) => ipcRenderer.send('clear-context', baseDir),
+  removeLastMessage: (baseDir: string) => ipcRenderer.send('remove-last-message', baseDir),
+  setZoomLevel: (level: number) => ipcRenderer.invoke('set-zoom-level', level),
 
   addResponseChunkListener: (baseDir, callback) => {
     const listenerId = uuidv4();
@@ -313,22 +316,22 @@ const api: ApplicationAPI = {
     }
   },
 
-  addClearMessagesListener: (baseDir, callback) => {
+  addClearProjectListener: (baseDir, callback) => {
     const listenerId = uuidv4();
-    clearMessagesListeners[listenerId] = (event: Electron.IpcRendererEvent, receivedBaseDir: string) => {
+    clearProjectListeners[listenerId] = (event: Electron.IpcRendererEvent, receivedBaseDir: string, clearMessages: boolean, clearSession: boolean) => {
       if (!compareBaseDirs(receivedBaseDir, baseDir)) {
         return;
       }
-      callback(event, receivedBaseDir);
+      callback(event, clearMessages, clearSession);
     };
-    ipcRenderer.on('clear-messages', clearMessagesListeners[listenerId]);
+    ipcRenderer.on('clear-project', clearProjectListeners[listenerId]);
     return listenerId;
   },
-  removeClearMessagesListener: (listenerId) => {
-    const callback = clearMessagesListeners[listenerId];
+  removeClearProjectListener: (listenerId) => {
+    const callback = clearProjectListeners[listenerId];
     if (callback) {
-      ipcRenderer.removeListener('clear-messages', callback);
-      delete clearMessagesListeners[listenerId];
+      ipcRenderer.removeListener('clear-project', callback);
+      delete clearProjectListeners[listenerId];
     }
   },
 };

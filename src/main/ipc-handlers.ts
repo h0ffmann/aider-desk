@@ -7,6 +7,7 @@ import { getFilePathSuggestions, isProjectPath, isValidPath } from './file-syste
 import { ProjectManager } from './project-manager';
 import { DEFAULT_PROJECT_SETTINGS, Store } from './store';
 import { scrapeWeb } from './web-scrapper';
+import logger from './logger';
 
 export const setupIpcHandlers = (mainWindow: BrowserWindow, projectManager: ProjectManager, store: Store, agent: Agent) => {
   ipcMain.handle('load-settings', () => {
@@ -20,6 +21,12 @@ export const setupIpcHandlers = (mainWindow: BrowserWindow, projectManager: Proj
     const mcpServersChanged = JSON.stringify(currentSettings.agentConfig?.mcpServers) !== JSON.stringify(settings.agentConfig?.mcpServers);
     if (mcpServersChanged) {
       void agent.initMcpServers();
+    }
+
+    const aiderEnvChanged = currentSettings.aider?.environmentVariables !== settings.aider?.environmentVariables;
+    const aiderOptionsChanged = currentSettings.aider?.options !== settings.aider?.options;
+    if (aiderEnvChanged || aiderOptionsChanged) {
+      agent.invalidateAiderEnv();
     }
 
     return store.getSettings();
@@ -127,8 +134,12 @@ export const setupIpcHandlers = (mainWindow: BrowserWindow, projectManager: Proj
     return store.getProjectSettings(baseDir);
   });
 
-  ipcMain.handle('save-project-settings', async (_, baseDir: string, settings: ProjectSettings) => {
-    store.saveProjectSettings(baseDir, settings);
+  ipcMain.handle('patch-project-settings', async (_, baseDir: string, settings: Partial<ProjectSettings>) => {
+    const projectSettings = store.getProjectSettings(baseDir);
+    return store.saveProjectSettings(baseDir, {
+      ...projectSettings,
+      ...settings,
+    });
   });
 
   ipcMain.handle('get-addable-files', async (_, baseDir: string) => {
@@ -191,7 +202,11 @@ export const setupIpcHandlers = (mainWindow: BrowserWindow, projectManager: Proj
   });
 
   ipcMain.on('clear-context', (_, baseDir: string) => {
-    projectManager.getProject(baseDir).clearContext();
+    projectManager.getProject(baseDir).clearContext(true);
+  });
+
+  ipcMain.on('remove-last-message', (_, baseDir: string) => {
+    projectManager.getProject(baseDir).removeLastMessage();
   });
 
   ipcMain.handle('scrape-web', async (_, baseDir: string, url: string) => {
@@ -227,5 +242,16 @@ export const setupIpcHandlers = (mainWindow: BrowserWindow, projectManager: Proj
     } else {
       return await agent.getMcpServerTools(serverName);
     }
+  });
+
+  ipcMain.handle('export-session-to-markdown', async (_, baseDir: string) => {
+    return await projectManager.getProject(baseDir).exportSessionToMarkdown();
+  });
+
+  ipcMain.handle('set-zoom-level', (_, zoomLevel: number) => {
+    logger.info(`Setting zoom level to ${zoomLevel}`);
+    mainWindow.webContents.setZoomFactor(zoomLevel);
+    const currentSettings = store.getSettings();
+    store.saveSettings({ ...currentSettings, zoomLevel });
   });
 };

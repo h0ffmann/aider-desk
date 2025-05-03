@@ -6,7 +6,10 @@ out
 .DS_Store
 *.log*
 .aider*
+.junie*
 .env
+*.env
+.env.*
 
 # release scripts
 release-win.sh

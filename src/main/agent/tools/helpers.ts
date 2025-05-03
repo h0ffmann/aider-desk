@@ -14,7 +14,8 @@ export const createHelpersToolset = (): ToolSet => {
     execute: async ({ toolName, availableTools }) => {
       // This tool's result is primarily for the LLM's internal reasoning,
       // informing it that its previous attempt failed because the tool was invalid.
-      return `Error: You attempted to use a tool named '${toolName}', but no such tool is available (maybe a typo?). Try again with different tool from the list of available tools: ${availableTools.join(', ')}`;
+      return `Error: You attempted to use a tool named '${toolName}', but no such tool is available (maybe a typo?). Try again with different tool from the list of available tools: ${availableTools.join(', ')}.
+      Make sure you use the tool name exactly as it appears in the list with server name prefix ${SERVER_TOOL_SEPARATOR} and tool name. Example: 'commander${SERVER_TOOL_SEPARATOR}run_command'.`;
     },
   });
 

@@ -91,7 +91,7 @@ export class Connector {
   public sendSetModelsMessage(mainModel: string, weakModel: string | null): void {
     const message: SetModelsMessage = {
       action: 'set-models',
-      mainModel,
+      mainModel: mainModel || 'deepseek/deepseek-chat', // Default model
       weakModel,
     };
     this.sendMessage(message);

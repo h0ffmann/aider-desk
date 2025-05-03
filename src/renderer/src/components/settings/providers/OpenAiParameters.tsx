@@ -46,7 +46,13 @@ export const OpenAiParameters = ({ settings, setSettings }: Props) => {
   return (
     <div className="mt-2 space-y-2">
       <ModelSelect providerName="openai" currentModel={model} onChange={handleModelChange} />
-      <Input label={t('openai.apiKey')} type="password" value={apiKey} onChange={handleApiKeyChange} />
+      <Input
+        label={t('openai.apiKey')}
+        type="password"
+        value={apiKey}
+        onChange={handleApiKeyChange}
+        placeholder={t('settings.agent.envVarPlaceholder', { envVar: 'OPENAI_API_KEY' })}
+      />
     </div>
   );
 };

@@ -19,6 +19,7 @@ import {
   isTokensInfoMessage,
   isUpdateAutocompletionMessage,
   isUpdateContextFilesMessage,
+  isUpdateRepoMapMessage,
   isUseCommandOutputMessage,
   LogMessage,
   Message,
@@ -193,6 +194,13 @@ export class ConnectorManager {
           promptId: message.promptId,
         });
         this.projectManager.getProject(connector.baseDir).promptFinished();
+      } else if (isUpdateRepoMapMessage(message)) {
+        const connector = this.findConnectorBySocket(socket);
+        if (!connector) {
+          return;
+        }
+        logger.debug('Updating repo map', { baseDir: connector.baseDir });
+        this.projectManager.getProject(connector.baseDir).updateRepoMapFromConnector(message.repoMap);
       } else {
         logger.warn('Unknown message type: ', message);
       }
